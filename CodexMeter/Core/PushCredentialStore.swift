@@ -59,7 +59,7 @@ struct KeychainPushCredentialBackend: PushCredentialBackend {
     // Do not depend on a Debug/Release bundle ID or a signing-team access-group entitlement.
     // The login Keychain uses its normal application ACL; re-signed ad-hoc updates may
     // require macOS access approval. Denials are surfaced without discarding legacy data.
-    static let service = "com.raycal.CodexMeter.pushCredentials"
+    static let service = "com.huang.ClaudeMeter.pushCredentials"
 
     func read(_ credential: PushCredential) throws -> String? {
         var query = baseQuery(credential)

@@ -63,7 +63,7 @@ actor UsageHistoryStore {
         let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? fileManager.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support")
         return base
-            .appendingPathComponent("CodexMeter", isDirectory: true)
+            .appendingPathComponent("ClaudeMeter", isDirectory: true)
             .appendingPathComponent("UsageHistory.sqlite")
     }
 
@@ -141,7 +141,7 @@ actor UsageHistoryStore {
         }
         let recoveryDirectory = databaseURL.deletingLastPathComponent().appendingPathComponent("Backups")
         try FileManager.default.createDirectory(at: recoveryDirectory, withIntermediateDirectories: true)
-        let recovery = recoveryDirectory.appendingPathComponent("Before-restore-\(UUID().uuidString).codexmeterbackup")
+        let recovery = recoveryDirectory.appendingPathComponent("Before-restore-\(UUID().uuidString).claudemeterbackup")
         let oldArchive = try exportBackup(identitySalt: identitySalt, appVersion: appVersion)
         try oldArchive.write(to: recovery, options: .atomic)
         let rollbackURL = directory.appendingPathComponent("rollback.sqlite")

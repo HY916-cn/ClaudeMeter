@@ -564,7 +564,7 @@ final class AppSettings: ObservableObject {
         let urlString: String
         switch settingsDestination {
         case .notifications:
-            let bundleID = Bundle.main.bundleIdentifier ?? "com.raycal.CodexMeter"
+            let bundleID = Bundle.main.bundleIdentifier ?? "com.huang.ClaudeMeter"
             urlString = "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=\(bundleID)"
         case .loginItems:
             urlString = "x-apple.systempreferences:com.apple.LoginItems-Settings.extension"

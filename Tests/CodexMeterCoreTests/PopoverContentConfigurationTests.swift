@@ -2,18 +2,18 @@ import XCTest
 @testable import CodexMeterCore
 
 final class PopoverContentConfigurationTests: XCTestCase {
-    func testDefaultsShowEverySectionWhileKeepingReserveQuotaHidden() {
+    func testDefaultsShowEverySectionAndQuotaWindow() {
         let configuration = PopoverContentConfiguration.defaultValue
-        let fiveHour = makeWindow(id: "codex-primary", name: "5h", duration: 300, used: 20)
+        let fiveHour = makeWindow(id: "claude-primary", name: "5h", duration: 300, used: 20)
         let weekly = makeWindow(
-            id: "codex-secondary",
+            id: "claude-secondary",
             name: "Weekly quota",
             duration: 10_080,
             used: 30
         )
         let reserve = makeWindow(
-            id: "base_model_inference-primary",
-            name: "Gpt-Reserve · Weekly quota",
+            id: "claude-sonnet-only-primary",
+            name: "Sonnet · Weekly quota",
             duration: 10_080,
             used: 0
         )
@@ -28,14 +28,14 @@ final class PopoverContentConfigurationTests: XCTestCase {
         )
         XCTAssertTrue(configuration.isQuotaWindowVisible(fiveHour))
         XCTAssertTrue(configuration.isQuotaWindowVisible(weekly))
-        XCTAssertFalse(configuration.isQuotaWindowVisible(reserve))
+        XCTAssertTrue(configuration.isQuotaWindowVisible(reserve))
         XCTAssertNil(configuration.menuBarQuotaWindowID)
     }
 
     func testQuotaWindowsCanBeHiddenIndependentlyByStableIdentity() {
         var configuration = PopoverContentConfiguration.defaultValue
-        let fiveHour = makeWindow(id: "codex-primary", name: "5h", duration: 300, used: 20)
-        let weekly = makeWindow(id: "codex-secondary", name: "Weekly", duration: 10_080, used: 30)
+        let fiveHour = makeWindow(id: "claude-primary", name: "5h", duration: 300, used: 20)
+        let weekly = makeWindow(id: "claude-secondary", name: "Weekly", duration: 10_080, used: 30)
 
         configuration.setQuotaWindow(fiveHour, visible: false)
 
@@ -46,8 +46,8 @@ final class PopoverContentConfigurationTests: XCTestCase {
 
     func testSelectedMenuBarWindowUsesPersistedStableIdentity() {
         var configuration = PopoverContentConfiguration.defaultValue
-        let fiveHour = makeWindow(id: "codex-primary", name: "5h", duration: 300, used: 80)
-        let weekly = makeWindow(id: "codex-secondary", name: "Weekly", duration: 10_080, used: 20)
+        let fiveHour = makeWindow(id: "claude-primary", name: "5h", duration: 300, used: 80)
+        let weekly = makeWindow(id: "claude-secondary", name: "Weekly", duration: 10_080, used: 20)
 
         configuration.menuBarQuotaWindowID = weekly.historyID
 
@@ -57,17 +57,17 @@ final class PopoverContentConfigurationTests: XCTestCase {
     func testMissingMenuBarSelectionFallsBackToLowestRemainingQuota() {
         var configuration = PopoverContentConfiguration.defaultValue
         configuration.menuBarQuotaWindowID = "duration:999:missing"
-        let fiveHour = makeWindow(id: "codex-primary", name: "5h", duration: 300, used: 80)
-        let weekly = makeWindow(id: "codex-secondary", name: "Weekly", duration: 10_080, used: 20)
+        let fiveHour = makeWindow(id: "claude-primary", name: "5h", duration: 300, used: 80)
+        let weekly = makeWindow(id: "claude-secondary", name: "Weekly", duration: 10_080, used: 20)
 
         XCTAssertEqual(configuration.selectedMenuBarWindow(from: [weekly, fiveHour]), fiveHour)
     }
 
     func testAutomaticSelectionUsesWeeklyQuotaWhenItHasLessRemaining() {
         let configuration = PopoverContentConfiguration.defaultValue
-        let fiveHour = makeWindow(id: "codex-primary", name: "5h", duration: 300, used: 20)
+        let fiveHour = makeWindow(id: "claude-primary", name: "5h", duration: 300, used: 20)
         let weekly = makeWindow(
-            id: "codex-secondary",
+            id: "claude-secondary",
             name: "Weekly quota",
             duration: 10_080,
             used: 90
@@ -79,13 +79,13 @@ final class PopoverContentConfigurationTests: XCTestCase {
     func testAutomaticSelectionUsesLowestRemainingAcrossWeeklyBuckets() {
         let configuration = PopoverContentConfiguration.defaultValue
         let reserve = makeWindow(
-            id: "base_model_inference-primary",
-            name: "Gpt-Reserve · Weekly quota",
+            id: "claude-sonnet-only-primary",
+            name: "Sonnet · Weekly quota",
             duration: 10_080,
             used: 90
         )
         let weekly = makeWindow(
-            id: "codex-secondary",
+            id: "claude-secondary",
             name: "Weekly quota",
             duration: 10_080,
             used: 76
@@ -96,13 +96,13 @@ final class PopoverContentConfigurationTests: XCTestCase {
 
     func testHistoryDefaultIgnoresOtherWeeklyBuckets() {
         let reserve = QuotaHistoryWindow(
-            id: "duration:10080:base_model_inference",
-            name: "Gpt-Reserve · Weekly quota",
+            id: "duration:10080:claude-sonnet-only",
+            name: "Sonnet · Weekly quota",
             windowDurationMins: 10_080,
             resetsAt: nil
         )
         let weekly = QuotaHistoryWindow(
-            id: "duration:10080:codex",
+            id: "duration:10080:claude",
             name: "Weekly quota",
             windowDurationMins: 10_080,
             resetsAt: nil

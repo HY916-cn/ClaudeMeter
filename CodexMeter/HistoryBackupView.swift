@@ -11,7 +11,7 @@ struct HistoryBackupView: View {
     @State private var message: String?
     @State private var recoveryURL: URL?
 
-    private var backupType: UTType { UTType(filenameExtension: "codexmeterbackup") ?? .data }
+    private var backupType: UTType { UTType(filenameExtension: "claudemeterbackup") ?? .data }
     private var version: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
     }
@@ -67,7 +67,7 @@ struct HistoryBackupView: View {
     private func export() {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [backupType]
-        panel.nameFieldStringValue = "CodexMeter-\(Date().formatted(.iso8601.year().month().day().dateSeparator(.dash))).codexmeterbackup"
+        panel.nameFieldStringValue = "ClaudeMeter-\(Date().formatted(.iso8601.year().month().day().dateSeparator(.dash))).claudemeterbackup"
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             busy = true

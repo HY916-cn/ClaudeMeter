@@ -124,7 +124,7 @@ struct AppSettingsView: View {
     private func exportCSV() {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.commaSeparatedText]
-        panel.nameFieldStringValue = "CodexMeter-History.csv"
+        panel.nameFieldStringValue = "ClaudeMeter-History.csv"
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             Task {

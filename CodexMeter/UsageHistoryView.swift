@@ -601,7 +601,7 @@ struct UsageHistoryView: View {
                 let data = try await history.exportCSV()
                 let panel = NSSavePanel()
                 panel.allowedContentTypes = [.commaSeparatedText]
-                panel.nameFieldStringValue = "CodexMeter-History.csv"
+                panel.nameFieldStringValue = "ClaudeMeter-History.csv"
                 guard panel.runModal() == .OK, let url = panel.url else { return }
                 try data.write(to: url, options: .atomic)
                 actionError = nil

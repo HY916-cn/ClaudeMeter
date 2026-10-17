@@ -9,7 +9,7 @@ enum HistoryBackupError: Error, Equatable {
 /// A single binary property-list container avoids archive path traversal and external tools.
 nonisolated struct HistoryBackup: Codable, Sendable {
     static func journalURL(for databaseURL: URL) -> URL {
-        databaseURL.deletingLastPathComponent().appendingPathComponent("InterruptedRestore.codexmeterbackup")
+        databaseURL.deletingLastPathComponent().appendingPathComponent("InterruptedRestore.claudemeterbackup")
     }
 
     /// Restore the previous database and salt if termination interrupted their coordinated update.

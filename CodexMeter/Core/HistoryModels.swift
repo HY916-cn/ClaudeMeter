@@ -293,11 +293,11 @@ enum QuotaHistoryWindowIdentity {
     }
 }
 
-/// Picks the normal Codex weekly bucket when the App Server returns multiple
+/// Picks the all-model Claude weekly bucket when the CLI returns multiple
 /// seven-day buckets. Other buckets remain available for explicit selection.
 enum QuotaWindowSelection {
     static let standardWeeklyHistoryID = QuotaHistoryWindowIdentity.make(
-        sourceID: "codex",
+        sourceID: "claude",
         durationMins: 7 * 24 * 60
     )
 

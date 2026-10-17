@@ -60,7 +60,7 @@ struct CodexMeterApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        Window("CodexMeter", id: CodexMeterWindowID.settings) {
+        Window("ClaudeMeter", id: CodexMeterWindowID.settings) {
             AppSettingsView(service: usageService, settings: settings,
                             history: history, updateChecker: updateChecker)
                 .appAppearance(settings.appearanceMode)
@@ -68,7 +68,7 @@ struct CodexMeterApp: App {
         .defaultSize(width: 840, height: 700)
         .windowResizability(.contentMinSize)
 
-        Window("CodexMeter", id: CodexMeterWindowID.history) {
+        Window("ClaudeMeter", id: CodexMeterWindowID.history) {
             UsageHistoryView(
                 service: usageService,
                 settings: settings,
@@ -80,7 +80,7 @@ struct CodexMeterApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentMinSize)
 
-        Window("CodexMeter", id: CodexMeterWindowID.about) {
+        Window("ClaudeMeter", id: CodexMeterWindowID.about) {
             AboutView(
                 settings: settings,
                 history: history,

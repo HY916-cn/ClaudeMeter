@@ -97,7 +97,7 @@ enum CodexProcessPipe {
 }
 
 enum CodexProcessEnvironment {
-    static func make(
+    nonisolated static func make(
         baseEnvironment: [String: String],
         executableURL: URL,
         homeDirectory: URL

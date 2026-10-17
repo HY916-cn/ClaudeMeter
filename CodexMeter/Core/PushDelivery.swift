@@ -46,7 +46,7 @@ enum PushRequestBuilder {
             }
             guard let endpointURL = components.url else { throw PushDeliveryFailure.invalidConfiguration }
             url = endpointURL
-            payload = ["title": title, "body": body, "group": "CodexMeter", "isArchive": "1"]
+            payload = ["title": title, "body": body, "group": "ClaudeMeter", "isArchive": "1"]
             let icon = configuration.iconURL.trimmingCharacters(in: .whitespacesAndNewlines)
             if !icon.isEmpty {
                 guard let image = URLComponents(string: icon), image.scheme?.lowercased() == "https",

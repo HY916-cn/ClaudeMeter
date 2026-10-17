@@ -64,13 +64,13 @@ final class NotificationManager {
             switch delivery.alert {
             case .overPace:
                 send(
-                    identifier: "codexmeter.\(window.historyID).pace",
+                    identifier: "claudemeter.\(window.historyID).pace",
                     title: L10n.string("notification.pace.title"),
                     body: L10n.format("notification.pace.body_format", window.name)
                 )
             case .lowQuota:
                 send(
-                    identifier: "codexmeter.\(window.historyID).low",
+                    identifier: "claudemeter.\(window.historyID).low",
                     title: L10n.string("notification.low.title"),
                     body: L10n.format(
                         "notification.low.body_format",

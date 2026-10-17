@@ -48,7 +48,7 @@ struct AboutView: View {
                     .resizable()
                     .frame(width: 64, height: 64)
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("CodexMeter").font(.title2.weight(.semibold))
+                    Text("ClaudeMeter").font(.title2.weight(.semibold))
                     Text(L10n.format(
                         "about.version_format",
                         updateChecker.installedVersion,
@@ -68,48 +68,14 @@ struct AboutView: View {
     private var updateSection: some View {
         GroupBox(L10n.string("updates.title")) {
             VStack(alignment: .leading, spacing: 10) {
-                Toggle(
-                    L10n.string("updates.include_prereleases"),
-                    isOn: Binding(
-                        get: { settings.includePrereleaseUpdates },
-                        set: { includePrereleases in
-                            settings.includePrereleaseUpdates = includePrereleases
-                            updateChecker.setIncludesPrereleases(includePrereleases)
-                        }
-                    )
-                )
-
-                Toggle(
-                    L10n.string("updates.automatic_install"),
-                    isOn: Binding(
-                        get: { updateChecker.automaticallyInstallsUpdates },
-                        set: { updateChecker.setAutomaticallyInstallsUpdates($0) }
-                    )
-                )
-                .disabled(!updateChecker.allowsAutomaticUpdates)
-
-                updateStatus
-
-                Button {
-                    updateChecker.check(
-                        includePrereleases: settings.includePrereleaseUpdates
-                    )
-                } label: {
-                    if updateChecker.state == .checking {
-                        HStack {
-                            ProgressView().controlSize(.small)
-                            Text(L10n.string("updates.checking"))
-                        }
-                    } else {
-                        Text(L10n.string("updates.check"))
-                    }
+                Text(L10n.string("updates.unavailable"))
+                    .foregroundStyle(.secondary)
+                if updateChecker.isDeveloperPreview {
+                    updateStatus
                 }
-                .disabled(!updateChecker.canCheckForUpdates)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 6)
-        }
-        .onAppear {
-            updateChecker.refreshPreferences()
         }
     }
 
@@ -149,17 +115,6 @@ struct AboutView: View {
                         .lineLimit(8)
                         .textSelection(.enabled)
                 }
-
-                Button(L10n.string("updates.install")) {
-                    updateChecker.check(
-                        includePrereleases: settings.includePrereleaseUpdates
-                    )
-                }
-
-                Link(
-                    L10n.string("updates.open_release"),
-                    destination: release.releasePageURL
-                )
             }
         }
     }

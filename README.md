@@ -1,410 +1,94 @@
-# CodexMeter
+# ClaudeMeter
 
-CodexMeter is a native macOS menu bar app that keeps your Codex account limits
-visible at a glance.
+ClaudeMeter 是一款原生 macOS 菜单栏应用，通过本机安装的 **Claude Code CLI** 读取 Claude 订阅额度，显示剩余额度、重置时间和本地历史曲线。
 
-![macOS 13+](https://img.shields.io/badge/macOS-13%2B-black)
-![Swift](https://img.shields.io/badge/Swift-5-orange)
-![Version](https://img.shields.io/badge/version-1.7.0-blue)
+本项目基于 [Raycal 的 CodexMeter](https://github.com/raycalrui/CodexMeter)（上游提交 `4c6baee`、版本 1.7.0）移植，沿用其 SwiftUI 菜单栏、图表、设置与历史存储设计。ClaudeMeter 初始版本为 **0.1.0**，是独立的社区移植项目，与 Anthropic 无隶属关系。
 
-> [!NOTE]
-> CodexMeter is an unofficial community project. It is not affiliated with or
-> endorsed by OpenAI.
+## 使用前准备
 
-## Preview
-
-### Menu Bar Popover
-
-<p align="center">
-  <img src="docs/images/codexmeter-menu-bar-popover.png" width="380" alt="CodexMeter menu-bar popover showing five-hour and weekly quota, reset opportunities, quota history, and token activity">
-</p>
-
-### Usage History
-
-<p align="center">
-  <img src="docs/images/codexmeter-usage-history.png" width="900" alt="CodexMeter Usage History window showing browsable quota history and token activity">
-</p>
-
-### Interactive Token Activity
-
-<p align="center">
-  <img src="docs/images/codexmeter-token-activity.png" width="900" alt="CodexMeter interactive Token Activity chart with range selection and hover details">
-</p>
-
-### Customizable Popover
-
-<p align="center">
-  <img src="docs/images/codexmeter-popover-customization.png" width="560" alt="CodexMeter popover customization window with quota source, visibility, ordering, and live preview controls">
-</p>
-
-## Features
-
-- Shows a selected Codex quota directly in the macOS menu bar, with automatic
-  fallback to the quota with the lowest remaining percentage.
-- Uses two concentric progress rings:
-  - outer ring: remaining quota;
-  - inner ring: remaining time before reset.
-- Highlights normal, over-pace, and low-quota states without relying on color
-  alone.
-- Displays the standard 5-hour and weekly Codex quota windows by default, with
-  reset countdowns and detailed progress bars.
-- Shows available banked Codex rate-limit resets as one compact lifetime
-  progress bar and expiration time per reset. This view is read-only and cannot
-  redeem a reset.
-- Compares remaining quota with remaining time to indicate whether consumption
-  is on pace.
-- Refreshes quota on launch, every 10 seconds while the menu is open, every
-  60 seconds in the background, after a Codex rate-limit update, and on manual
-  request. Account checks and Token Activity polling stay at
-  one-minute intervals. Failed automatic refreshes back off up to five minutes;
-  unchanged token responses do not rewrite history.
-- Detects Codex account changes and switches quota data without requiring an app
-  restart.
-- Supports standalone and npm-installed Codex CLI launchers by supplying common
-  local runtime paths to the App Server child process.
-- Preserves the last successful result and marks it as stale when refresh fails.
-- Supports optional low-quota and over-pace notifications.
-- Supports optional quota-replenishment reminders through Bark, Gotify,
-  Telegram bots, and Discord webhooks, with independent channel switches,
-  test messages, delivery status, bounded retries, and Keychain credential storage.
-- Supports launch at login.
-- Includes English, Simplified Chinese, and Traditional Chinese.
-- Lets the app interface follow the system appearance or stay in Light or Dark
-  mode independently.
-- Offers ring, horizontal-bar, stacked-bar, percentage-only, and progress-only
-  menu bar styles.
-- Lets users independently show, hide, and reorder quota details, reset
-  opportunities, Quota History, and Token Activity in the popover. Each returned
-  quota window has its own visibility switch, and the menu bar indicator can use
-  a chosen window or the automatic lowest-remaining fallback. The default
-  popover shows Reset Opportunities, Quota History, and Token Activity while
-  keeping the GPT-Reserve weekly quota hidden.
-- Includes developer options with presets, custom quota/time sliders, live
-  preview, safe appearance controls,
-  deterministic quota-state presets, JSON configuration export, and a one-click
-  reset to the accepted 1.0 appearance. Developer-only test data can populate
-  30 days of quota history and simulate an available app update.
-- Records local quota history as changes plus 15-minute anchors. The full chart
-  defaults to the current seven-day reset cycle and can also show the rolling
-  last 7 days, 14 days, or month, plus browsable calendar weeks and months.
-  Historical ranges show observed quota consumption across reset cycles and
-  label incomplete totals as lower bounds instead of estimating missing use.
-  Each reset cycle remains a separate smooth curve beginning at 100%, with long
-  unrecorded periods visibly shaded.
-- Shows a compact view of the current weekly quota cycle plus the last 30 days
-  of token activity directly in the menu-bar popover. The full history window
-  can switch token activity between 7 days, 30 days, 90 days, one year, and all
-  locally retained data. One-year data is grouped by week and all-time data by
-  month to remain readable. Token values use compact `k`, `M`, and `B` units
-  instead of scientific notation.
-- Keeps the menu-bar popover compact with divider-separated quota and token
-  sections rather than nested card backgrounds.
-- Provides a resizable, full-screen-capable history window with an integrated
-  transparent title bar. Hovering a token bar smoothly highlights its bucket,
-  keeps the rule and date centered across every range, and reveals its exact day
-  or grouped week/month plus compact token count.
-- Shows optional daily and summary token activity from `account/usage/read`
-  when the current Codex account supports it.
-- Accumulates returned daily token buckets locally, clears them on an explicit
-  account change, and supports 7-, 30-, 90-day, one-year, or unlimited local
-  retention, storage-size reporting, CSV export, and history clearing. CSV
-  exports include both the raw Unix timestamp and a readable ISO 8601 local
-  time with its UTC offset.
-- Uses native Liquid Glass cards and controls on macOS 26, with the same modern
-  chart layout and a system-material fallback on earlier supported macOS.
-- Includes an About window and Sparkle-based signed updates. It checks daily,
-  supports one-click download/install/relaunch, and can optionally download and
-  install future updates automatically.
-
-## How It Works
-
-Changed digits in the menu bar percentage briefly turn red when quota decreases,
-hold red for half a second, then smoothly fade back over two seconds; the percent sign keeps its normal color.
-
-CodexMeter launches the locally installed Codex CLI as:
-
-```text
-codex app-server --listen stdio://
-```
-
-It then communicates with App Server using newline-delimited JSON-RPC messages:
-
-1. Initialize the local App Server connection.
-2. Read account metadata with `account/read`.
-3. Read ChatGPT rate-limit windows with `account/rateLimits/read`.
-4. Read optional banked-reset availability from the same rate-limit response.
-5. Optionally read token activity with `account/usage/read` when supported.
-6. Record successful quota snapshots and token summaries in account-separated
-   local SQLite partitions. ChatGPT accounts use a salted, one-way local key;
-   account email and authentication data are never stored.
-7. Refresh when `account/updated` or `account/rateLimits/updated` is received.
-8. Recover a stale authentication session by restarting only the local App
-   Server child process once.
-9. Calculate remaining quota, remaining time, consumption pace, and eligible
-   history estimates locally.
-
-CodexMeter does not scrape ChatGPT pages, read Codex authentication files, or
-store access tokens. Authentication and token refresh remain owned by Codex.
-
-Codex App Server is currently an experimental interface intended for local
-development and debugging, so future Codex releases may require compatibility
-updates. See the official [Codex App Server documentation](https://learn.chatgpt.com/docs/app-server).
-
-## Requirements
-
-- macOS 13 or later.
-- Xcode 27 beta or later when building the current project from source.
-- A locally installed Codex CLI.
-- A working Codex login.
-
-Install and sign in to Codex CLI if needed:
+- macOS 13 或更新版本。
+- 已安装支持 `--safe-mode`、`--ax-screen-reader` 的 Claude Code CLI（本次兼容性检查使用 2.1.217），终端中可执行 `claude`。
+- 使用可查询订阅额度的 Claude 账户完成登录：
 
 ```bash
-npm install -g @openai/codex
-codex login
+claude auth login
+claude auth status --json
 ```
 
-CodexMeter currently discovers `codex` in these locations:
-
-```text
-~/.local/bin/codex
-/opt/homebrew/bin/codex
-/usr/local/bin/codex
-~/.npm-global/bin/codex
-~/.nvm/versions/node/*/bin/codex
-```
-
-## Build and Run
-
-Clone the repository:
+首次使用时，在应用使用的独立目录中完成 Claude Code 设置和目录信任，并确认 `/usage` 能显示用量：
 
 ```bash
-git clone git@github.com:raycalrui/CodexMeter.git
-cd CodexMeter
-open CodexMeter.xcodeproj
+mkdir -p "$HOME/Library/Application Support/ClaudeMeter/CLI"
+cd "$HOME/Library/Application Support/ClaudeMeter/CLI"
+claude /usage
 ```
 
-In Xcode:
+然后打开 ClaudeMeter，通过菜单栏的刷新按钮读取额度。应用不会代替用户接受信任提示。API Key、第三方云平台认证或未订阅账户可能无法提供这一额度面板。
 
-1. Select the `CodexMeter` scheme.
-2. Select **My Mac** as the destination.
-3. Press **Run**.
+## 功能
 
-CodexMeter is a menu-bar-only app, so it does not appear in the Dock. Look for
-the quota indicator in the macOS menu bar after launch.
+- 菜单栏双环、百分比及多种紧凑显示方式；按剩余额度自动选择最紧张的窗口，或手动固定窗口。
+- 当前会话与每周额度、CLI 返回的模型专属周额度、重置倒计时，以及有可靠重置时间时的消耗进度比较。
+- 本地额度历史、当前周期及日历区间浏览、CSV 导出、保留期限设置和 `.claudemeterbackup` 备份恢复。
+- 可配置菜单栏和弹窗、浅色/深色外观、英文、简体中文及繁体中文。
+- 本地额度提醒、可选 Bark / Gotify / Telegram / Discord 补充额度通知，以及登录时启动。
+- 开发者预览可检查不同额度状态和图表；预览数据与真实账户历史分开。
 
-## Download and Install
+## 数据来源与限制
 
-Download `CodexMeter-1.7.0.dmg` from the GitHub Releases page, open it, and drag
-CodexMeter into the Applications folder.
+ClaudeMeter 执行 `claude auth status --json` 获取登录状态，通过伪终端运行交互式 Claude Code 的 `/usage` 读取额度。认证由 Claude CLI 管理；应用不读取 Claude 的认证文件，也不自行访问未公开的用量 HTTP 接口。该过程不提交模型提示词，并禁用工具与 hooks。
 
-The downloadable build uses an ad-hoc signature and is not notarized. On first
-launch, macOS may block it. Control-click CodexMeter in Applications, choose
-**Open**, and confirm once. A Developer ID certificate and Apple notarization
-are planned for a future distribution build.
+`/usage` 是终端界面，**不是稳定的结构化用量 API**。CLI 版本、输出格式、账户类型、首次设置或网络状况都可能影响读取。遇到未识别或不完整的输出时，应用显示错误，保留上次成功数据并标记为过期；不会把解析失败当作 0% 用量。账户切换会清除先前账户的可见额度。
 
-## Automatic Updates
+当前 CLI 来源不提供每日 Token 明细、累计 Token 统计或可手动领取的额度重置机会。相应历史界面保留不可用状态，不以额度百分比推算 Token。缺少可可靠解析的重置时间时，剩余额度仍可显示，时间和进度估计保持不可用。
 
-Starting with version 1.3.0, CodexMeter uses
-[Sparkle](https://sparkle-project.org/) to download, verify, replace, and
-relaunch the app. Every update archive is signed with a separate EdDSA key, so
-this works with the existing ad-hoc app signature and does not require a paid
-Apple Developer account. The private EdDSA key remains in the maintainer's
-login Keychain and is never stored in the repository or bundled in the app.
+ClaudeMeter 使用手动安装更新。这个版本没有在线更新源；发布独立更新服务前，应配置自己的签名与发布地址。
 
-Version 1.2.1 does not contain Sparkle, so upgrading from 1.2.1 to 1.3.0 still
-requires downloading the DMG manually. Once 1.3.0 is installed, later signed
-updates can be installed inside CodexMeter. Because the app is not notarized,
-macOS may still show Gatekeeper warnings on a new installation or after an
-update; Sparkle does not replace Apple notarization.
+自动刷新间隔为弹窗打开时 60 秒、后台 5 分钟；手动刷新立即执行，失败时保留过期标记。CLI 未返回可区分账户的身份时，只显示即时额度，暂停历史记录和额度通知。
 
-## Development
+## 本地数据与隐私
 
-Build from Terminal:
+- 应用标识：`com.huang.ClaudeMeter`，偏好设置与原项目分开。
+- 历史数据库：`~/Library/Application Support/ClaudeMeter/UsageHistory.sqlite`。
+- 推送凭据保存在 `com.huang.ClaudeMeter.pushCredentials` 对应的本机钥匙串项目。
+- 历史按本机加盐后的账户标识隔离，不保存账户邮箱、认证 Token 或原始 CLI 响应。
+- 备份包括历史数据库与维持账户分区所需的本机盐值，不包含推送凭据或认证信息；恢复会替换现有历史，并要求重新打开应用。
+- 远程通知默认关闭。启用后，只向用户配置的服务发送额度窗口名称与实际观测到的剩余额度。
+
+## 开发与验证
+
+源码目录和核心测试模块保留上游的 `CodexMeter` / `CodexMeterCore` 名称，以便追踪移植差异；应用产物为 `ClaudeMeter.app`。
+
+本机也可使用 Swift 6.4、macOS 26.5 SDK 和 Python 3 直接构建，脚本会生成三语资源、应用图标并进行 ad-hoc 签名：
 
 ```bash
-xcodebuild \
-  -project CodexMeter.xcodeproj \
-  -scheme CodexMeter \
-  -configuration Debug \
-  -destination 'platform=macOS' \
-  CODE_SIGNING_ALLOWED=NO \
-  build
+bash Scripts/build_local.sh
+open dist/ClaudeMeter.app
 ```
 
-Run the core unit tests:
+macOS 27 SDK 的 SwiftUI 宏依赖完整 Xcode；脚本会优先使用已安装的 Command Line Tools 26.5 SDK，也可用 `SDKROOT` 指定 SDK。该本地构建没有 Apple 公证。
+
+使用支持源码所需 Swift 与 SDK 的完整 Xcode 构建（上游要求 Xcode 27 beta 或更新版本）：
+
+```bash
+xcodebuild -project CodexMeter.xcodeproj -scheme ClaudeMeter \
+  -configuration Debug -destination 'platform=macOS' \
+  CODE_SIGNING_ALLOWED=NO build
+```
+
+核心测试与推送服务的隔离测试：
 
 ```bash
 swift test
-```
-
-If Command Line Tools is selected instead of the full Xcode installation, set
-`DEVELOPER_DIR` before running either command.
-
-Pure quota, time, pacing, history, migration, and semantic-version logic lives
-under `CodexMeter/Core`. `Package.swift` exposes only that directory to Swift
-Package Manager so the core logic can be tested independently of the macOS UI.
-
-### Publishing a Sparkle update
-
-After building the unsigned Release app, re-sign the embedded Sparkle framework
-and then the outer app bundle. This order is required because Xcode removes
-development headers while embedding the framework:
-
-```bash
-Scripts/sign_ad_hoc_release.sh /path/to/CodexMeter.app
-```
-
-Create the release DMG from that verified app. Then use Sparkle's bundled
-`generate_appcast` utility. The helper below reads the private EdDSA key from
-the login Keychain, signs the archive metadata, and updates the repository's
-`appcast.xml`:
-
-```bash
-Scripts/prepare_sparkle_update.sh \
-  v1.7.0 \
-  /path/to/CodexMeter-1.7.0.dmg \
-  /path/to/Sparkle/bin
-```
-
-For a prerelease, pass `beta` as the fourth argument. Upload the exact signed
-DMG to the matching GitHub Release, commit and push the generated
-`appcast.xml`, then verify its download URL before announcing the release.
-
-See [AGENTS.md](AGENTS.md) for the project architecture, product rules,
-verification checklist, and planned developer customization options.
-
-## Privacy and Security
-
-- CodexMeter communicates with a local Codex process over stdio.
-- It does not copy or persist Codex access tokens.
-- It does not read Codex authentication files directly.
-- It does not log account email addresses or raw authentication responses.
-- App Server errors use locally authored messages instead of displaying raw
-  server errors or system exception details that could contain private data.
-- App Server output is read in bounded chunks. A response line over 1 MiB stops
-  the child connection and marks the last successful quota as stale; a manual
-  or scheduled refresh can reconnect. Diagnostic stderr stays in an 8 KiB
-  in-memory tail and is never displayed verbatim.
-- In-app updates require Sparkle 2.9.6 or later and retain HTTPS transport and
-  EdDSA archive verification.
-- It separates ChatGPT account history with a salted SHA-256 key derived
-  locally from the account type and normalized email. Neither the email nor
-  this internal key is included in CSV exports.
-- It does not add its own analytics or tracking.
-- Remote notification channels are disabled by default. When enabled, the
-  configured service receives the quota-window name and observed remaining
-  percentage, but no account email, authentication data, or token history.
-  Push keys/tokens and Discord webhook URLs are stored locally in Keychain,
-  never in history backups. Legacy plaintext preferences are removed only after
-  successful migration; Keychain access failures remain visible and preserve
-  the prior credential rather than silently discarding it. An ad-hoc app update
-  may require macOS Keychain access approval again.
-- Usage history is stored only in
-  `~/Library/Application Support/CodexMeter/UsageHistory.sqlite` and can be
-  exported or cleared by the user.
-
-App Sandbox is currently disabled because CodexMeter must launch the user's
-local Codex executable. This should be reviewed deliberately before any future
-Mac App Store distribution.
-
-## Settings
-
-The menu-bar **Settings** entry opens one resizable window with General,
-Menu Bar & Popover, Notifications, History & Backup, and Developer, followed by About.
-Existing preferences are preserved. About/update information opens in the same
-settings window; Usage History remains a separate window.
-
-## Remote quota notifications
-
-Open **Settings → Notifications** and enable only the channels you need.
-Select five-hour and/or weekly replenishment reminders independently of the
-Mac's existing low-quota and over-pace alerts. All remote channels start off.
-
-- **Bark**: enter an HTTPS server address and the device key from the iPhone app;
-  an optional HTTPS icon URL is supported.
-- **Gotify**: enter your HTTPS server address and application token; choose a
-  message priority.
-- **Telegram**: create a bot with [@BotFather](https://t.me/BotFather), start a
-  chat with it (or add it to a group), then enter its token and the destination
-  Chat ID. Use the official [bot setup guide](https://core.telegram.org/bots/tutorial)
-  and [getUpdates API](https://core.telegram.org/bots/api#getupdates) to obtain
-  your chat ID locally; never publish a URL containing your bot token.
-- **Discord**: create a webhook under the destination channel's
-  **Integrations → Webhooks** and paste its URL. Anyone with this URL can post
-  to that channel, so treat it as a password. See the
-  [Discord webhook guide](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks).
-
-Use **Send test notification** to check your setup. The status confirms server
-acceptance, not whether the phone displayed or you read the message. Temporary
-network errors, rate limits, and server failures get at most three attempts;
-permanent failures are shown without exposing server responses or secrets.
-Changing the account or destination cancels pending old deliveries. HTTPS is
-required and redirects are refused to avoid forwarding credentials.
-
-CodexMeter must be running and connected. Notifications describe observed quota
-replenishment, not a prediction or an announcement from OpenAI; partial recovery
-reports the actual remaining percentage. Initial observations and unused 100%
-windows with sliding reset dates do not send reminders. Resets while the app is
-closed are not retrospectively replayed. A lost server response can still cause
-a duplicate on retry because these services do not share an idempotency protocol.
-
-## Full history backup and restore
-
-Open **Settings → History & Backup → Backup & Restore** to export a `.codexmeterbackup` file.
-It includes all retained quota and token history across accounts, database
-metadata, and the local identity salt needed to match accounts on another Mac.
-It does not contain login credentials, email addresses, or app preferences.
-Keep this file private. Previously deleted or retention-pruned records cannot
-be recovered. CSV remains a separate readable export format.
-
-Restore replaces all local history after confirmation. CodexMeter validates the
-archive version, SHA-256 checksum, database integrity, schema, and row counts,
-then saves the existing history in `~/Library/Application Support/CodexMeter/Backups`.
-Quit and reopen the app after restoring; history writes pause until then.
-Your existing retention preference applies after reopening. An interrupted
-restore is rolled back before account activation at the next launch.
-Backups larger than 512 MiB are currently unsupported.
-
-## Known Limitations
-
-- Codex App Server is experimental and may change without notice.
-- Codex executable discovery uses common stable install locations and installed
-  NVM Node versions rather than the interactive shell's `PATH`.
-- Notification and launch-at-login behavior must be tested with a signed build.
-- Token activity is optional and may be unavailable for API-key, Bedrock, or
-  other account types even when quota windows are available.
-- Banked-reset availability is account-dependent. Older App Server versions or
-  unsupported accounts may omit it; CodexMeter does not treat omission as a
-  confirmed zero balance.
-- Codex currently provides no stable identifier for API-key and Bedrock
-  accounts. CodexMeter therefore cannot restore separate historical profiles
-  when switching back and forth between multiple credentials of those types;
-  their anonymous history partition is reset on an explicit account change.
-- The downloadable DMG is ad-hoc signed, not notarized, and not prepared for
-  the Mac App Store, so first launch may require Control-clicking the app and
-  choosing **Open**.
-
-## Contributing
-
-Issues and pull requests are welcome.
-
-Before submitting a change:
-
-```bash
-swift test
+bash Scripts/test_claude_cli.sh
+bash Scripts/test_push_service.sh
 git diff --check
 ```
 
-For menu bar or popover changes, also launch exactly one signed app instance and
-perform a UI smoke test.
+推送测试使用模拟响应，不向真实通知服务发送消息。登录时启动、系统通知权限、文件面板和菜单栏交互仍需要在实际运行的签名应用中验证。真实订阅额度读取须以已登录账户完成一次 `/usage` 刷新为验收依据；解析器测试通过并不等于真实账户端到端验证通过。
+
+`test_claude_cli.sh` 无需 XCTest，覆盖终端解析、时区、账户身份、进程超时/取消、输出上限与子进程清理。追加 `--live` 可检查当前 CLI，输出只包含登录状态和额度。`swift test` 的完整上游测试套件需要提供 XCTest 的 Xcode 环境。
 
 ## License
 
-CodexMeter is available under the [MIT License](LICENSE).
-
-## Disclaimer
-
-Codex and OpenAI are trademarks of OpenAI. This project is provided as an
-independent utility and may stop working when upstream experimental interfaces
-change.
+[MIT License](LICENSE). Original project copyright © 2026 Raycal. 原始许可证与作者归属保留；本仓库的 Claude CLI 适配与独立应用配置构成 ClaudeMeter 移植。
