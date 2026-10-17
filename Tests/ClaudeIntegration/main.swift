@@ -1,6 +1,16 @@
 import Foundation
 import Darwin
 
+if CommandLine.arguments.contains("--check-working-directory") {
+    let expected = URL(fileURLWithPath: CommandLine.arguments.last!).resolvingSymlinksInPath().path
+    let actual = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).resolvingSymlinksInPath().path
+    let pwd = ProcessInfo.processInfo.environment["PWD"].map {
+        URL(fileURLWithPath: $0).resolvingSymlinksInPath().path
+    }
+    print(actual == expected && pwd == expected ? "directory-ok" : "directory-mismatch")
+    exit(0)
+}
+
 func expect(_ value: @autoclosure () -> Bool, _ message: String) {
     guard value() else { fatalError(message) }
 }
@@ -131,6 +141,9 @@ let client = ClaudeCLIClient()
 let text = try client.capture(executable: URL(fileURLWithPath: "/bin/echo"), arguments: ["capture-ok"],
     directory: directory, usage: false, timeout: 2)
 expect(text.contains("capture-ok"), "PTY captures child output")
+let directoryCheck = try ClaudeCLIClient().capture(executable: URL(fileURLWithPath: CommandLine.arguments[0]),
+    arguments: ["--check-working-directory", directory.path], directory: directory, usage: false, timeout: 2)
+expect(directoryCheck.contains("directory-ok"), "Child PWD and actual working directory both match the probe directory")
 let environmentCheck = try ClaudeCLIClient().capture(executable: URL(fileURLWithPath: "/bin/sh"),
     arguments: ["-c", "test -z \"$CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC\" && test \"$DISABLE_TELEMETRY\" = 1 && test \"$DISABLE_ERROR_REPORTING\" = 1 && test \"$DISABLE_AUTOUPDATER\" = 1 && printf environment-ok"],
     directory: directory, usage: false, timeout: 2)

@@ -32,6 +32,9 @@ upstream attribution. Current port version: 0.1.3, build 4.
 - Require users to finish CLI setup and workspace trust themselves; do not
   auto-accept permission or trust prompts. Handle exit, timeout, malformed
   output, setup requirements, and sign-out explicitly.
+- Keep the CLI child environment's PWD equal to its dedicated working directory;
+  inherited workspace paths can stall startup from a desktop launch. Verify
+  refreshes from the app launched through Launch Services as well as CLI tests.
 - Terminal output is an unstable interface. Match only complete quota panels,
   bound process duration/output, drain output, stop child processes on failure,
   and show locally authored errors rather than raw CLI output.

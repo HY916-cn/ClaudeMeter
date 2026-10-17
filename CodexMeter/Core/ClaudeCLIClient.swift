@@ -81,7 +81,7 @@ nonisolated final class ClaudeCLIClient: @unchecked Sendable {
     }
 
     // A native PTY keeps /usage in interactive-command mode without sending a model prompt.
-    // Screen-reader mode makes panel updates line-oriented and avoids a terminal emulator.
+    // Screen-reader mode limits the terminal controls needed to render panel updates.
     func capture(executable: URL, arguments: [String], directory: URL,
                  usage: Bool, timeout: TimeInterval) throws -> String {
         var master: Int32 = -1
@@ -105,6 +105,9 @@ nonisolated final class ClaudeCLIClient: @unchecked Sendable {
         process.standardError = slaveHandle
         var environment = CodexProcessEnvironment.make(baseEnvironment: ProcessInfo.processInfo.environment,
             executableURL: executable, homeDirectory: FileManager.default.homeDirectoryForCurrentUser)
+        // Claude uses PWD during startup; keep it aligned with the dedicated probe
+        // directory so a Finder launch cannot send it into the parent's workspace.
+        environment["PWD"] = directory.path
         environment["TERM"] = "xterm-256color"
         environment["NO_COLOR"] = "1"
         // The umbrella traffic switch also blocks /usage in newer Claude CLI versions.

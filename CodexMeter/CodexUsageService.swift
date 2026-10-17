@@ -206,6 +206,7 @@ final class CodexUsageService: ObservableObject {
     }
 
     private func applyWindows(_ parsed: [CodexUsageWindow]) {
+        NSLog("ClaudeMeter quota refresh succeeded: %d windows", parsed.count)
         let parsed = localizedWindows(parsed)
         let updatedAt = Date()
         windows = parsed
@@ -259,6 +260,7 @@ final class CodexUsageService: ObservableObject {
     }
 
     private func markFailure(_ error: ClaudeCLIError) {
+        NSLog("ClaudeMeter quota refresh failed: %@", String(describing: error))
         refreshSchedule.failed(at: Date(), usageUnavailable: error == .usageCached || error == .rateLimited)
         isLoading = false
         isRefreshInFlight = false
