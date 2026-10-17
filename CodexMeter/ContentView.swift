@@ -481,7 +481,7 @@ struct ContentView: View {
             if let lastUpdated = service.lastUpdated {
                 Text(L10n.format(
                     "status.updated_at_format",
-                    L10n.formattedTime(lastUpdated, includingSeconds: true)
+                    L10n.formattedDateTime(lastUpdated)
                 ))
                 .font(.caption2)
                 .foregroundStyle(.tertiary)

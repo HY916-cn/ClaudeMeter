@@ -237,6 +237,39 @@ actor UsageHistoryStore {
         return inserted
     }
 
+    /// Recovers the last successful CLI observations after the app restarts.
+    func latestClaudeUsage(accountKey: String) throws -> ClaudeUsageSnapshot? {
+        try prepareDatabase()
+        guard !accountKey.isEmpty else { return nil }
+        let statement = try prepare("""
+            WITH latest AS (
+                SELECT id, window_id, window_name, sampled_at, remaining_percent,
+                       window_duration_mins, resets_at, starts_segment, is_anchor,
+                       is_stale, source,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY window_id ORDER BY sampled_at DESC, id DESC
+                       ) AS position
+                FROM quota_samples
+                WHERE account_key = ? AND is_stale = 0 AND source = 'refresh'
+                  AND (window_id GLOB 'duration:*:claude' OR window_id GLOB 'duration:*:claude-*')
+            )
+            SELECT id, window_id, window_name, sampled_at, remaining_percent,
+                   window_duration_mins, resets_at, starts_segment, is_anchor,
+                   is_stale, source
+            FROM latest WHERE position = 1;
+            """)
+        defer { sqlite3_finalize(statement) }
+        try bind(accountKey, at: 1, in: statement)
+        var samples: [QuotaHistorySample] = []
+        while true {
+            switch sqlite3_step(statement) {
+            case SQLITE_ROW: samples.append(try decodeQuotaSample(statement))
+            case SQLITE_DONE: return ClaudeUsageSnapshot.fromHistorySamples(samples)
+            default: throw currentError()
+            }
+        }
+    }
+
     func recordTokenUsage(
         _ snapshot: TokenUsageSnapshot,
         accountKey: String = HistoryAccountIdentity.legacyKey

@@ -2,13 +2,13 @@
 
 ClaudeMeter 是一款原生 macOS 菜单栏应用，通过本机安装的 **Claude Code CLI** 读取 Claude 订阅额度，显示剩余额度、重置时间和本地历史曲线。
 
-本项目基于 [Raycal 的 CodexMeter](https://github.com/raycalrui/CodexMeter)（上游提交 `4c6baee`、版本 1.7.0）移植，沿用其 SwiftUI 菜单栏、图表、设置与历史存储设计。ClaudeMeter 当前版本为 **0.1.1**，是独立的社区移植项目，与 Anthropic 无隶属关系。
+本项目基于 [Raycal 的 CodexMeter](https://github.com/raycalrui/CodexMeter)（上游提交 `4c6baee`、版本 1.7.0）移植，沿用其 SwiftUI 菜单栏、图表、设置与历史存储设计。ClaudeMeter 当前版本为 **0.1.2**，是独立的社区移植项目，与 Anthropic 无隶属关系。
 
 ## 下载与安装
 
 - [GitHub 仓库](https://github.com/HY916-cn/ClaudeMeter)
-- [v0.1.1 发行版本](https://github.com/HY916-cn/ClaudeMeter/releases/tag/v0.1.1)
-- [macOS Apple Silicon 安装包](https://github.com/HY916-cn/ClaudeMeter/releases/download/v0.1.1/ClaudeMeter-0.1.1-macOS-arm64.zip)
+- [v0.1.2 发行版本](https://github.com/HY916-cn/ClaudeMeter/releases/tag/v0.1.2)
+- [macOS Apple Silicon 安装包](https://github.com/HY916-cn/ClaudeMeter/releases/download/v0.1.2/ClaudeMeter-0.1.2-macOS-arm64.zip)
 
 解压 ZIP，将 `ClaudeMeter.app` 拖入“应用程序”后打开。发行包使用 ad-hoc 签名，尚未经过 Apple 公证；首次打开可能需要在“系统设置 → 隐私与安全性”中确认打开。发行页提供 SHA-256 校验文件。
 
@@ -92,7 +92,7 @@ claude /usage
 >
 > 如果提示 CLI 只返回缓存用量或查询频率受限，**保留应用运行，等提示中的时间自动重试即可；不要反复点击刷新或重复运行 `/usage`。** 手动刷新同样遵守冷却，避免继续增加查询请求。
 
-Claude CLI 的 `/usage` 在查询失败时，可能显示 `Showing last-known usage`，即此前缓存的额度。[官方说明](https://code.claude.com/docs/en/costs#when-the-usage-request-fails)指出，常见原因是查询接口限流。ClaudeMeter 会保留上次成功读取的百分比及更新时间；新数据到达后，过期提示会自动消失，历史记录也会继续更新。
+Claude CLI 的 `/usage` 在查询失败时，可能显示 `Showing last-known usage`，即此前缓存的额度。[官方说明](https://code.claude.com/docs/en/costs#when-the-usage-request-fails)指出，常见原因是查询接口限流。ClaudeMeter 会保留上次成功读取的百分比及更新时间；应用重启后，确认当前账户身份即可从该账户的本地历史恢复显示，并标记为过期。恢复的数据不会触发额度通知或冒充新的历史记录；新数据到达后，过期提示会自动消失，历史记录也会继续更新。
 
 如果经过多次自动重试仍未恢复，请在冷却结束后按上面的第 3 步检查终端 `/usage`：若终端也只显示缓存或限流，需等待 Claude 的查询服务恢复；若终端有完整的新数据而应用仍失败，请报告 Claude CLI 版本与应用中的错误提示。仅在明确提示未登录或目录未初始化时，重新执行相应配置步骤。
 
@@ -152,6 +152,8 @@ xcodebuild -project CodexMeter.xcodeproj -scheme ClaudeMeter \
 ```bash
 swift test
 bash Scripts/test_claude_cli.sh
+bash Scripts/test_claude_recovery.sh
+bash Scripts/test_claude_service.sh
 bash Scripts/test_push_service.sh
 git diff --check
 ```

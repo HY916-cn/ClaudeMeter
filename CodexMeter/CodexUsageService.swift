@@ -118,7 +118,7 @@ final class CodexUsageService: ObservableObject {
             self.settings.notificationsEnabled = granted
             if granted {
                 self.settings.clearSettingsError()
-                if self.historyAccountKey != nil {
+                if self.historyAccountKey != nil, !self.isStale {
                     self.notificationManager.evaluate(
                         windows: self.windows,
                         threshold: self.settings.notificationThreshold
@@ -172,6 +172,7 @@ final class CodexUsageService: ObservableObject {
             pushNotificationService.resetEvaluationState()
             if let identity {
                 history.activateAccount(identity.key, resetExisting: false, claimLegacyHistory: false)
+                restoreLastKnownUsage(accountKey: identity.key)
             } else {
                 history.deactivateAccount()
             }
@@ -179,8 +180,22 @@ final class CodexUsageService: ObservableObject {
         planType = account.loggedIn ? (account.subscriptionType ?? account.authMethod ?? "Claude") : nil
     }
 
-    private func applyWindows(_ parsed: [CodexUsageWindow]) {
-        let parsed = parsed.map { window in
+    private func restoreLastKnownUsage(accountKey: String) {
+        Task { [weak self] in
+            guard let self,
+                  let snapshot = await self.history.latestClaudeUsage(accountKey: accountKey),
+                  self.historyAccountKey == accountKey,
+                  self.windows.isEmpty, self.lastUpdated == nil else { return }
+            // A delayed disk read must never replace fresh CLI data or another account.
+            self.windows = self.localizedWindows(snapshot.windows)
+            self.lastUpdated = snapshot.sampledAt
+            self.isStale = true
+            self.isLoading = false
+        }
+    }
+
+    private func localizedWindows(_ parsed: [CodexUsageWindow]) -> [CodexUsageWindow] {
+        parsed.map { window in
             let name: String
             if window.id == "claude-primary" { name = L10n.string("duration.five_hours") }
             else if window.id == "claude-secondary" { name = L10n.string("duration.weekly") }
@@ -188,6 +203,10 @@ final class CodexUsageService: ObservableObject {
             return CodexUsageWindow(id: window.id, name: name, usedPercent: window.usedPercent,
                 windowDurationMins: window.windowDurationMins, resetsAt: window.resetsAt)
         }
+    }
+
+    private func applyWindows(_ parsed: [CodexUsageWindow]) {
+        let parsed = localizedWindows(parsed)
         let updatedAt = Date()
         windows = parsed
         isLoading = false
