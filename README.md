@@ -4,26 +4,86 @@ ClaudeMeter 是一款原生 macOS 菜单栏应用，通过本机安装的 **Clau
 
 本项目基于 [Raycal 的 CodexMeter](https://github.com/raycalrui/CodexMeter)（上游提交 `4c6baee`、版本 1.7.0）移植，沿用其 SwiftUI 菜单栏、图表、设置与历史存储设计。ClaudeMeter 初始版本为 **0.1.0**，是独立的社区移植项目，与 Anthropic 无隶属关系。
 
-## 使用前准备
+## 下载与安装
 
-- macOS 13 或更新版本。
-- 已安装支持 `--safe-mode`、`--ax-screen-reader` 的 Claude Code CLI（本次兼容性检查使用 2.1.217），终端中可执行 `claude`。
-- 使用可查询订阅额度的 Claude 账户完成登录：
+- [GitHub 仓库](https://github.com/HY916-cn/ClaudeMeter)
+- [v0.1.0 发行版本](https://github.com/HY916-cn/ClaudeMeter/releases/tag/v0.1.0)
+- [macOS Apple Silicon 安装包](https://github.com/HY916-cn/ClaudeMeter/releases/download/v0.1.0/ClaudeMeter-0.1.0-macOS-arm64.zip)
+
+解压 ZIP，将 `ClaudeMeter.app` 拖入“应用程序”后打开。发行包使用 ad-hoc 签名，尚未经过 Apple 公证；首次打开可能需要在“系统设置 → 隐私与安全性”中确认打开。发行页提供 SHA-256 校验文件。
+
+此安装包适用于 Apple Silicon Mac，系统要求为 macOS 13 或更新版本。请完成以下首次配置，再打开应用。
+
+## 首次使用：按顺序完成配置
+
+> [!IMPORTANT]
+> **Claude CLI 登录和 ClaudeMeter 专用目录初始化是两个独立步骤，两步都必须完成。**
+>
+> **即使 `claude auth status` 已显示登录成功，也必须执行第 3 步，在 `~/Library/Application Support/ClaudeMeter/CLI` 中完成首次设置与目录信任，并亲眼确认 `/usage` 显示用量。** 在其他目录完成的信任不一定适用于这个目录。
+>
+> ClaudeMeter 会在后台启动 CLI，无法代替你回答交互式设置和信任提示。若跳过这一步，应用会提示需要完成设置，无法读取额度。
+
+### 1. 确认 Claude Code CLI 已安装
+
+打开 macOS 的“终端”，执行：
+
+```bash
+claude --version
+```
+
+应看到 Claude Code 的版本号。本版本已验证 CLI **2.1.217**，需要支持 `--safe-mode` 和 `--ax-screen-reader`。
+
+若提示 `command not found`，可使用 [Claude Code 官方安装方式](https://code.claude.com/docs/en/setup#install-claude-code)：
+
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+安装结束后重新打开终端，再运行 `claude --version`。如果仍找不到命令，按安装器提示或[官方 PATH 排查说明](https://code.claude.com/docs/en/troubleshooting)修复后再继续。
+
+### 2. 登录可查询订阅额度的账户
 
 ```bash
 claude auth login
+```
+
+按终端提示完成浏览器登录，回到终端后检查：
+
+```bash
 claude auth status --json
 ```
 
-首次使用时，在应用使用的独立目录中完成 Claude Code 设置和目录信任，并确认 `/usage` 能显示用量：
+应看到 `"loggedIn": true`。使用 Claude 订阅账户登录；API Key 或第三方云平台认证可能不提供订阅额度。**这一结果只确认登录成功，还需要继续第 3 步。**
+
+### 3. 初始化 ClaudeMeter 专用目录，并打开用量面板
+
+**将下面整段复制到终端执行。请保留双引号，因为路径中包含空格。**
 
 ```bash
-mkdir -p "$HOME/Library/Application Support/ClaudeMeter/CLI"
-cd "$HOME/Library/Application Support/ClaudeMeter/CLI"
+mkdir -p "$HOME/Library/Application Support/ClaudeMeter/CLI" && \
+cd "$HOME/Library/Application Support/ClaudeMeter/CLI" && \
 claude /usage
 ```
 
-然后打开 ClaudeMeter，通过菜单栏的刷新按钮读取额度。应用不会代替用户接受信任提示。API Key、第三方云平台认证或未订阅账户可能无法提供这一额度面板。
+按终端实际出现的提示完成操作：
+
+1. 若出现主题、显示方式等首次设置，选择适合自己的选项并完成引导。
+2. 若出现目录信任提示，确认显示的目录是 `~/Library/Application Support/ClaudeMeter/CLI`，再确认信任该目录。
+3. 若仍要求登录，完成登录后继续。
+4. 等待用量面板出现。若完成引导后停在普通输入框，输入 `/usage` 并按回车。
+
+**成功标志：终端显示当前会话和每周的用量百分比（例如 `Current session`、`Current week`），而不是登录页或目录信任提示。**
+
+看到用量面板后，可按 `Esc` 返回输入框，再输入 `/exit` 退出 CLI。以后 ClaudeMeter 会自行启动短暂的 CLI 进程，终端不需要一直开着。
+
+### 4. 打开 ClaudeMeter，确认首次刷新
+
+打开 `ClaudeMeter.app`，点击 macOS 菜单栏中的 ClaudeMeter 指示器，再点击刷新按钮，等待本次读取完成。应看到剩余额度百分比与更新时间；读取成功后会自动开始记录本地额度历史。
+
+> [!WARNING]
+> **已登录，但 ClaudeMeter 仍提示“完成首次设置和目录信任”？请重新执行第 3 步的整段命令。** 必须在上面的专用目录里运行，单独在其他目录执行 `claude` 或反复点击应用刷新，无法完成该目录的信任。
+>
+> **如果终端里的 `/usage` 本身不能显示用量，请先处理终端中的登录、账户订阅或网络提示，再返回 ClaudeMeter。** 应用以 CLI 返回的额度为准。
 
 ## 功能
 
