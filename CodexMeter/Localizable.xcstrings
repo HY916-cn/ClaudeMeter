@@ -7998,19 +7998,85 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Claude CLI did not return a complete usage panel. Open Claude Code and run /usage, then refresh."
+            "value": "Claude CLI did not return a complete usage panel. ClaudeMeter will retry automatically. If this persists, check /usage in Claude Code."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Claude CLI 未返回完整用量面板。请打开 Claude Code 运行 /usage，然后刷新。"
+            "value": "Claude CLI 未返回完整用量面板，ClaudeMeter 将自动重试。若持续失败，请在 Claude Code 中检查 /usage。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Claude CLI 未回傳完整用量面板。請開啟 Claude Code 執行 /usage，然後重新整理。"
+            "value": "Claude CLI 未回傳完整用量面板，ClaudeMeter 將自動重試。若持續失敗，請在 Claude Code 中檢查 /usage。"
+          }
+        }
+      }
+    },
+    "error.claude_usage_cached": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude CLI returned cached usage because its latest request failed. Please wait for automatic retry."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude CLI 本次查询失败，仅返回缓存用量。请等待自动重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude CLI 本次查詢失敗，僅回傳快取用量。請等待自動重試。"
+          }
+        }
+      }
+    },
+    "error.claude_usage_rate_limited": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude has temporarily rate-limited usage queries. Please wait for automatic retry."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude 暂时限制了用量查询频率。请等待自动重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude 暫時限制了用量查詢頻率。請等待自動重試。"
+          }
+        }
+      }
+    },
+    "error.claude_retry_at": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic retry at %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将在 %@ 自动重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "將於 %@ 自動重試。"
           }
         }
       }

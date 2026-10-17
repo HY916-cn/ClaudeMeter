@@ -22,7 +22,7 @@ nonisolated struct ClaudeAuthStatus: Decodable, Equatable, Sendable {
 
 nonisolated enum ClaudeCLIError: Error, Equatable {
     case notInstalled, notLoggedIn, subscriptionRequired, setupRequired
-    case timedOut, communication, outputTooLarge, usageUnrecognized, cancelled
+    case timedOut, communication, outputTooLarge, usageUnrecognized, usageCached, rateLimited, cancelled
 
     var localizationKey: String {
         switch self {
@@ -32,6 +32,8 @@ nonisolated enum ClaudeCLIError: Error, Equatable {
         case .setupRequired: return "error.claude_setup_required"
         case .timedOut: return "error.request_timeout"
         case .usageUnrecognized: return "error.claude_usage_unrecognized"
+        case .usageCached: return "error.claude_usage_cached"
+        case .rateLimited: return "error.claude_usage_rate_limited"
         case .communication, .outputTooLarge, .cancelled: return "error.communication"
         }
     }
@@ -64,8 +66,10 @@ nonisolated enum ClaudeUsageParser {
         if lower.contains("only available for") && lower.contains("subscriber") {
             return .subscriptionRequired
         }
-        if ["showing last-known usage", "failed to load usage", "partial usage data",
-            "per-model breakdown unavailable", "could not refresh usage", "usage endpoint is rate limited"]
+        if lower.contains("usage endpoint is rate limited") { return .rateLimited }
+        if lower.contains("showing last-known usage") { return .usageCached }
+        if ["failed to load usage", "partial usage data",
+            "per-model breakdown unavailable", "could not refresh usage"]
             .contains(where: lower.contains) { return .usageUnrecognized }
         return nil
     }

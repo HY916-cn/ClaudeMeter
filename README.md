@@ -2,13 +2,13 @@
 
 ClaudeMeter 是一款原生 macOS 菜单栏应用，通过本机安装的 **Claude Code CLI** 读取 Claude 订阅额度，显示剩余额度、重置时间和本地历史曲线。
 
-本项目基于 [Raycal 的 CodexMeter](https://github.com/raycalrui/CodexMeter)（上游提交 `4c6baee`、版本 1.7.0）移植，沿用其 SwiftUI 菜单栏、图表、设置与历史存储设计。ClaudeMeter 初始版本为 **0.1.0**，是独立的社区移植项目，与 Anthropic 无隶属关系。
+本项目基于 [Raycal 的 CodexMeter](https://github.com/raycalrui/CodexMeter)（上游提交 `4c6baee`、版本 1.7.0）移植，沿用其 SwiftUI 菜单栏、图表、设置与历史存储设计。ClaudeMeter 当前版本为 **0.1.1**，是独立的社区移植项目，与 Anthropic 无隶属关系。
 
 ## 下载与安装
 
 - [GitHub 仓库](https://github.com/HY916-cn/ClaudeMeter)
-- [v0.1.0 发行版本](https://github.com/HY916-cn/ClaudeMeter/releases/tag/v0.1.0)
-- [macOS Apple Silicon 安装包](https://github.com/HY916-cn/ClaudeMeter/releases/download/v0.1.0/ClaudeMeter-0.1.0-macOS-arm64.zip)
+- [v0.1.1 发行版本](https://github.com/HY916-cn/ClaudeMeter/releases/tag/v0.1.1)
+- [macOS Apple Silicon 安装包](https://github.com/HY916-cn/ClaudeMeter/releases/download/v0.1.1/ClaudeMeter-0.1.1-macOS-arm64.zip)
 
 解压 ZIP，将 `ClaudeMeter.app` 拖入“应用程序”后打开。发行包使用 ad-hoc 签名，尚未经过 Apple 公证；首次打开可能需要在“系统设置 → 隐私与安全性”中确认打开。发行页提供 SHA-256 校验文件。
 
@@ -85,6 +85,17 @@ claude /usage
 >
 > **如果终端里的 `/usage` 本身不能显示用量，请先处理终端中的登录、账户订阅或网络提示，再返回 ClaudeMeter。** 应用以 CLI 返回的额度为准。
 
+## 提示“数据可能已过期”时怎么办
+
+> [!IMPORTANT]
+> **“数据可能已过期”表示本次刷新没有获得新数据，并不等于登录失效或额度用完。**
+>
+> 如果提示 CLI 只返回缓存用量或查询频率受限，**保留应用运行，等提示中的时间自动重试即可；不要反复点击刷新或重复运行 `/usage`。** 手动刷新同样遵守冷却，避免继续增加查询请求。
+
+Claude CLI 的 `/usage` 在查询失败时，可能显示 `Showing last-known usage`，即此前缓存的额度。[官方说明](https://code.claude.com/docs/en/costs#when-the-usage-request-fails)指出，常见原因是查询接口限流。ClaudeMeter 会保留上次成功读取的百分比及更新时间；新数据到达后，过期提示会自动消失，历史记录也会继续更新。
+
+如果经过多次自动重试仍未恢复，请在冷却结束后按上面的第 3 步检查终端 `/usage`：若终端也只显示缓存或限流，需等待 Claude 的查询服务恢复；若终端有完整的新数据而应用仍失败，请报告 Claude CLI 版本与应用中的错误提示。仅在明确提示未登录或目录未初始化时，重新执行相应配置步骤。
+
 ## 功能
 
 - 菜单栏双环、百分比及多种紧凑显示方式；按剩余额度自动选择最紧张的窗口，或手动固定窗口。
@@ -104,7 +115,7 @@ ClaudeMeter 执行 `claude auth status --json` 获取登录状态，通过伪终
 
 ClaudeMeter 使用手动安装更新。这个版本没有在线更新源；发布独立更新服务前，应配置自己的签名与发布地址。
 
-自动刷新间隔为弹窗打开时 60 秒、后台 5 分钟；手动刷新立即执行，失败时保留过期标记。CLI 未返回可区分账户的身份时，只显示即时额度，暂停历史记录和额度通知。
+正常自动刷新间隔为弹窗打开时 5 分钟、后台 10 分钟；手动刷新至少间隔 60 秒，并遵守失败后的冷却。CLI 返回缓存或明确限流时，按 5、10、20、30 分钟逐步延长重试间隔，成功后恢复正常频率。失败时保留上次成功数据、更新时间与过期标记。CLI 未返回可区分账户的身份时，只显示即时额度，暂停历史记录和额度通知。
 
 ## 本地数据与隐私
 

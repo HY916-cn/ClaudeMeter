@@ -24,11 +24,10 @@ final class CodexUsageService: ObservableObject {
     private var refreshTimer: Timer?
     private var terminationObserver: NSObjectProtocol?
     private var isPopoverVisible = false
-    private var lastAttempt: Date?
     private var lastHistorySnapshot: [CodexUsageWindow]?
     private var lastHistoryAccountKey: String?
     private var lastHistoryRecordAt: Date?
-    private var refreshSchedule = CodexRefreshSchedule()
+    private var refreshSchedule = ClaudeRefreshSchedule()
     private(set) var historyAccountKey: String?
 
     init(settings: AppSettings, history: UsageHistoryModel,
@@ -42,7 +41,6 @@ final class CodexUsageService: ObservableObject {
             forName: NSApplication.willTerminateNotification, object: nil, queue: .main
         ) { [weak self] _ in self?.client?.cancel() }
         DispatchQueue.main.async { [weak self] in
-            self?.installRefreshTimer()
             self?.start()
         }
     }
@@ -62,11 +60,18 @@ final class CodexUsageService: ObservableObject {
     func start() { refresh() }
 
     func refresh() {
-        guard !isRefreshInFlight else { return }
+        performRefresh(manual: true)
+    }
+
+    private func performRefresh(manual: Bool) {
+        let now = Date()
+        guard !isRefreshInFlight, refreshSchedule.mayRefresh(at: now, manual: manual) else { return }
+        refreshTimer?.invalidate()
+        refreshTimer = nil
         isRefreshInFlight = true
         isLoading = windows.isEmpty
         errorMessage = nil
-        lastAttempt = Date()
+        refreshSchedule.started(at: now)
         let client = ClaudeCLIClient()
         self.client = client
         DispatchQueue.global(qos: .utility).async { [weak self] in
@@ -82,16 +87,15 @@ final class CodexUsageService: ObservableObject {
                 switch result {
                 case .success(let parsed): self.applyWindows(parsed)
                 case .failure(let error):
-                    self.markFailure(L10n.string((error as? ClaudeCLIError ?? .communication).localizationKey))
+                    self.markFailure(error as? ClaudeCLIError ?? .communication)
                 }
             }
         }
     }
 
-    func refreshIfNeeded(maxAge: TimeInterval = 30) {
-        guard refreshSchedule.mayPoll(at: Date()),
-              lastAttempt.map({ Date().timeIntervalSince($0) >= maxAge }) ?? true else { return }
-        refresh()
+    func refreshIfNeeded(maxAge: TimeInterval = ClaudeRefreshSchedule.foregroundInterval) {
+        guard refreshSchedule.lastAttempt.map({ Date().timeIntervalSince($0) >= maxAge }) ?? true else { return }
+        performRefresh(manual: false)
     }
 
     func setPopoverVisible(_ visible: Bool) {
@@ -137,11 +141,13 @@ final class CodexUsageService: ObservableObject {
 
     private func installRefreshTimer() {
         refreshTimer?.invalidate()
-        // Each sample launches a short CLI probe; countdowns use TimelineView.
-        let timer = Timer(timeInterval: isPopoverVisible ? 60 : 300, repeats: true) { [weak self] _ in
+        refreshTimer = nil
+        guard !isRefreshInFlight,
+              let nextAttempt = refreshSchedule.nextAutomaticAttempt(isPopoverVisible: isPopoverVisible) else { return }
+        let timer = Timer(timeInterval: max(0.1, nextAttempt.timeIntervalSinceNow), repeats: false) { [weak self] _ in
             DispatchQueue.main.async {
-                guard let self, self.refreshSchedule.mayPoll(at: Date()) else { return }
-                self.refresh()
+                guard let self else { return }
+                self.performRefresh(manual: false)
             }
         }
         timer.tolerance = isPopoverVisible ? 5 : 20
@@ -190,6 +196,7 @@ final class CodexUsageService: ObservableObject {
         lastUpdated = updatedAt
         errorMessage = nil
         refreshSchedule.succeeded()
+        installRefreshTimer()
         if let historyAccountKey,
            shouldRecordQuotaHistory(parsed, accountKey: historyAccountKey, at: updatedAt) {
             lastHistoryAccountKey = historyAccountKey
@@ -232,12 +239,16 @@ final class CodexUsageService: ObservableObject {
         }
     }
 
-    private func markFailure(_ message: String) {
-        refreshSchedule.failed(at: Date())
+    private func markFailure(_ error: ClaudeCLIError) {
+        refreshSchedule.failed(at: Date(), usageUnavailable: error == .usageCached || error == .rateLimited)
         isLoading = false
         isRefreshInFlight = false
         isStale = !windows.isEmpty
-        errorMessage = message
+        let message = L10n.string(error.localizationKey)
+        errorMessage = refreshSchedule.retryAfter.map {
+            message + " " + L10n.format("error.claude_retry_at", L10n.formattedTime($0))
+        } ?? message
+        installRefreshTimer()
     }
 
     deinit {

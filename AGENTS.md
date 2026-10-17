@@ -4,7 +4,7 @@
 
 ClaudeMeter is a native macOS 13+ menu bar app, derived from Raycal's
 MIT-licensed CodexMeter (upstream 4c6baee, version 1.7.0). Preserve LICENSE and
-upstream attribution. This port starts at version 0.1.0, build 1.
+upstream attribution. Current port version: 0.1.1, build 2.
 
 - App product/display name: ClaudeMeter; bundle identifier: com.huang.ClaudeMeter.
 - Keep internal CodexMeter source paths and core type names to make the fork
@@ -38,9 +38,11 @@ upstream attribution. This port starts at version 0.1.0, build 1.
   previous account's visible state when login identity changes.
 - Failed refreshes retain the last successful snapshot and mark it stale.
   Keep concurrent refreshes bounded and prevent duplicate requests.
-- Poll every 60 seconds with the popover open and every 5 minutes in the
-  background. Missing account identity permits live display only; do not
-  persist history or deliver quota alerts for an unidentified account.
+- Poll every 5 minutes with the popover open and every 10 minutes in the
+  background. Manual refreshes require 60 seconds between attempts and honor
+  failure cooldowns. Cached or rate-limited responses back off for 5, 10, 20,
+  then 30 minutes; show the retry time and preserve the last successful sample.
+  Missing account identity permits live display only; do not persist history or deliver quota alerts for an unidentified account.
 - Localizable.xcstrings contains English, Simplified Chinese, and Traditional
   Chinese UI strings. Keep source comments in English.
 

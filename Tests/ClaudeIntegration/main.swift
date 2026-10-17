@@ -36,6 +36,12 @@ for heading in ["Extra usage", "Usage credits", "Claude Code and Cowork credit"]
 }
 expect(ClaudeUsageParser.parse(panel + "\nCurrent session\nLoading usage…") == nil, "Reject incomplete repaint")
 expect(ClaudeUsageParser.parse("Showing last-known usage\n" + panel) == nil, "Cached usage cannot be fresh")
+expect(ClaudeUsageParser.blockingError(in: panel + "\nShowing last-known usage · 5m ago · r to retry") == .usageCached,
+       "Cached CLI fallback has a distinct actionable error")
+expect(ClaudeUsageParser.blockingError(in: "Usage endpoint is rate limited. Showing last-known usage") == .rateLimited,
+       "Explicit rate limits take priority over cached fallback")
+expect(ClaudeUsageParser.parse(panel + "\nUsage endpoint is rate limited") == nil,
+       "Rate-limited data cannot enter history as a fresh sample")
 let noReset = ClaudeUsageParser.parse("Current session\n0% used\nEsc to cancel")
 expect(noReset?.first?.remainingPercent == 100 && noReset?.first?.resetsAt == nil, "Missing resets stay unknown")
 expect(QuotaWindowSelection.preferredDefault(from: windows.reversed())?.id == "claude-secondary",
@@ -73,6 +79,30 @@ let account = try JSONDecoder().decode(ClaudeAuthStatus.self,
 expect(account.supportsUsage, "Subscription auth status")
 expect(account.historyIdentity == "sample@example.invalid|one", "Organization partitions history")
 
+var schedule = ClaudeRefreshSchedule()
+expect(schedule.mayRefresh(at: now, manual: true), "Initial refresh is allowed")
+schedule.started(at: now)
+expect(!schedule.mayRefresh(at: now.addingTimeInterval(59), manual: true), "Repeated clicks cannot flood CLI")
+expect(schedule.mayRefresh(at: now.addingTimeInterval(60), manual: true), "Manual refresh after minimum interval")
+expect(schedule.nextAutomaticAttempt(isPopoverVisible: true) == now.addingTimeInterval(300), "Foreground polls every five minutes")
+expect(schedule.nextAutomaticAttempt(isPopoverVisible: false) == now.addingTimeInterval(600), "Background polls every ten minutes")
+for delay in [300.0, 600, 1200, 1800, 1800] {
+    schedule.failed(at: now, usageUnavailable: true)
+    expect(schedule.retryAfter == now.addingTimeInterval(delay), "Cached/rate-limited requests back off with a cap")
+    for manual in [true, false] {
+        expect(!schedule.mayRefresh(at: now.addingTimeInterval(delay - 1), manual: manual), "Every refresh entry honors cooldown")
+        expect(schedule.mayRefresh(at: now.addingTimeInterval(delay), manual: manual), "Retry resumes at cooldown expiry")
+    }
+    expect(schedule.nextAutomaticAttempt(isPopoverVisible: false) == schedule.retryAfter, "Background retry is not postponed by polling interval")
+}
+schedule.succeeded()
+expect(schedule.retryAfter == nil, "Success clears cooldown")
+schedule.failed(at: now, usageUnavailable: true)
+expect(schedule.retryAfter == now.addingTimeInterval(300), "Success resets backoff count")
+schedule.succeeded()
+schedule.failed(at: now, usageUnavailable: false)
+expect(schedule.retryAfter == now.addingTimeInterval(20), "Ordinary failures retain short retry")
+
 let directory = FileManager.default.temporaryDirectory
 let client = ClaudeCLIClient()
 let text = try client.capture(executable: URL(fileURLWithPath: "/bin/echo"), arguments: ["capture-ok"],
@@ -88,6 +118,8 @@ func expectError(_ expected: ClaudeCLIError, executable: String, arguments: [Str
     } catch { fatalError("Unexpected capture error") }
 }
 expectError(.setupRequired, executable: "/bin/echo", arguments: ["Do you trust the files in this folder?"], usage: true, timeout: 2)
+expectError(.usageCached, executable: "/bin/echo", arguments: [panel + "\nShowing last-known usage"], usage: true, timeout: 2)
+expectError(.rateLimited, executable: "/bin/echo", arguments: ["Usage endpoint is rate limited"], usage: true, timeout: 2)
 expectError(.outputTooLarge, executable: "/usr/bin/yes", arguments: [], usage: false, timeout: 2)
 let descendantOutput = try ClaudeCLIClient().capture(executable: URL(fileURLWithPath: "/bin/sh"),
     arguments: ["-c", "sleep 30 >/dev/null 2>&1 & echo $!"], directory: directory, usage: false, timeout: 2)
@@ -106,7 +138,7 @@ do {
         directory: directory, usage: false, timeout: 2)
     fatalError("Cancelled client must not launch")
 } catch let error as ClaudeCLIError { expect(error == .cancelled, "Cancellation") }
-print("Claude CLI checks passed: parser, account identity, PTY, setup protection, timeout, output limit, cancellation.")
+print("Claude CLI checks passed: parser, cache/rate-limit classification, refresh cooldown, account identity, PTY, setup protection, timeout, output limit, cancellation.")
 
 if CommandLine.arguments.contains("--live") {
     do {
