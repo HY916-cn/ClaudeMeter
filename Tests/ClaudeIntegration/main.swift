@@ -108,6 +108,10 @@ let client = ClaudeCLIClient()
 let text = try client.capture(executable: URL(fileURLWithPath: "/bin/echo"), arguments: ["capture-ok"],
     directory: directory, usage: false, timeout: 2)
 expect(text.contains("capture-ok"), "PTY captures child output")
+let environmentCheck = try ClaudeCLIClient().capture(executable: URL(fileURLWithPath: "/bin/sh"),
+    arguments: ["-c", "test -z \"$CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC\" && test \"$DISABLE_TELEMETRY\" = 1 && test \"$DISABLE_ERROR_REPORTING\" = 1 && test \"$DISABLE_AUTOUPDATER\" = 1 && printf environment-ok"],
+    directory: directory, usage: false, timeout: 2)
+expect(environmentCheck.contains("environment-ok"), "Quota requests stay enabled while diagnostics and auto-updates stay disabled")
 func expectError(_ expected: ClaudeCLIError, executable: String, arguments: [String], usage: Bool, timeout: TimeInterval) {
     do {
         _ = try ClaudeCLIClient().capture(executable: URL(fileURLWithPath: executable), arguments: arguments,

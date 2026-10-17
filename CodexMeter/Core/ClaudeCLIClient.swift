@@ -107,7 +107,10 @@ nonisolated final class ClaudeCLIClient: @unchecked Sendable {
             executableURL: executable, homeDirectory: FileManager.default.homeDirectoryForCurrentUser)
         environment["TERM"] = "xterm-256color"
         environment["NO_COLOR"] = "1"
-        environment["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"] = "1"
+        // The umbrella traffic switch also blocks /usage in newer Claude CLI versions.
+        // Disable diagnostics individually so the requested quota query can reach Claude.
+        environment["DISABLE_TELEMETRY"] = "1"
+        environment["DISABLE_ERROR_REPORTING"] = "1"
         environment["DISABLE_AUTOUPDATER"] = "1"
         environment.removeValue(forKey: "CLAUDECODE")
         process.environment = environment

@@ -2,13 +2,13 @@
 
 ClaudeMeter 是一款原生 macOS 菜单栏应用，通过本机安装的 **Claude Code CLI** 读取 Claude 订阅额度，显示剩余额度、重置时间和本地历史曲线。
 
-本项目基于 [Raycal 的 CodexMeter](https://github.com/raycalrui/CodexMeter)（上游提交 `4c6baee`、版本 1.7.0）移植，沿用其 SwiftUI 菜单栏、图表、设置与历史存储设计。ClaudeMeter 当前版本为 **0.1.2**，是独立的社区移植项目，与 Anthropic 无隶属关系。
+本项目基于 [Raycal 的 CodexMeter](https://github.com/raycalrui/CodexMeter)（上游提交 `4c6baee`、版本 1.7.0）移植，沿用其 SwiftUI 菜单栏、图表、设置与历史存储设计。ClaudeMeter 当前版本为 **0.1.3**，是独立的社区移植项目，与 Anthropic 无隶属关系。
 
 ## 下载与安装
 
 - [GitHub 仓库](https://github.com/HY916-cn/ClaudeMeter)
-- [v0.1.2 发行版本](https://github.com/HY916-cn/ClaudeMeter/releases/tag/v0.1.2)
-- [macOS Apple Silicon 安装包](https://github.com/HY916-cn/ClaudeMeter/releases/download/v0.1.2/ClaudeMeter-0.1.2-macOS-arm64.zip)
+- [v0.1.3 发行版本](https://github.com/HY916-cn/ClaudeMeter/releases/tag/v0.1.3)
+- [macOS Apple Silicon 安装包](https://github.com/HY916-cn/ClaudeMeter/releases/download/v0.1.3/ClaudeMeter-0.1.3-macOS-arm64.zip)
 
 解压 ZIP，将 `ClaudeMeter.app` 拖入“应用程序”后打开。发行包使用 ad-hoc 签名，尚未经过 Apple 公证；首次打开可能需要在“系统设置 → 隐私与安全性”中确认打开。发行页提供 SHA-256 校验文件。
 
@@ -31,7 +31,7 @@ ClaudeMeter 是一款原生 macOS 菜单栏应用，通过本机安装的 **Clau
 claude --version
 ```
 
-应看到 Claude Code 的版本号。本版本已验证 CLI **2.1.217**，需要支持 `--safe-mode` 和 `--ax-screen-reader`。
+应看到 Claude Code 的版本号。本版本已验证 CLI **2.1.217 / 2.1.302**，需要支持 `--safe-mode` 和 `--ax-screen-reader`。
 
 若提示 `command not found`，可使用 [Claude Code 官方安装方式](https://code.claude.com/docs/en/setup#install-claude-code)：
 
@@ -107,7 +107,7 @@ Claude CLI 的 `/usage` 在查询失败时，可能显示 `Showing last-known us
 
 ## 数据来源与限制
 
-ClaudeMeter 执行 `claude auth status --json` 获取登录状态，通过伪终端运行交互式 Claude Code 的 `/usage` 读取额度。认证由 Claude CLI 管理；应用不读取 Claude 的认证文件，也不自行访问未公开的用量 HTTP 接口。该过程不提交模型提示词，并禁用工具与 hooks。
+ClaudeMeter 执行 `claude auth status --json` 获取登录状态，通过伪终端运行交互式 Claude Code 的 `/usage` 读取额度。认证由 Claude CLI 管理；应用不读取 Claude 的认证文件，也不自行访问未公开的用量 HTTP 接口。该过程不提交模型提示词，并禁用工具与 hooks。应用分别关闭 CLI 的遥测、错误上报与自动更新；用量查询保持可用。
 
 `/usage` 是终端界面，**不是稳定的结构化用量 API**。CLI 版本、输出格式、账户类型、首次设置或网络状况都可能影响读取。遇到未识别或不完整的输出时，应用显示错误，保留上次成功数据并标记为过期；不会把解析失败当作 0% 用量。账户切换会清除先前账户的可见额度。
 

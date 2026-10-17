@@ -4,7 +4,7 @@
 
 ClaudeMeter is a native macOS 13+ menu bar app, derived from Raycal's
 MIT-licensed CodexMeter (upstream 4c6baee, version 1.7.0). Preserve LICENSE and
-upstream attribution. Current port version: 0.1.2, build 3.
+upstream attribution. Current port version: 0.1.3, build 4.
 
 - App product/display name: ClaudeMeter; bundle identifier: com.huang.ClaudeMeter.
 - Keep internal CodexMeter source paths and core type names to make the fork
@@ -26,7 +26,9 @@ upstream attribution. Current port version: 0.1.2, build 3.
   discovery, process handling, and parser for tests.
 - Claude owns authentication. Do not read auth files, extract access tokens,
   or add undocumented direct HTTP usage calls. Do not submit model prompts
-  while collecting quota. Keep CLI tools and hooks disabled.
+  while collecting quota. Keep CLI tools and hooks disabled. Disable telemetry
+  and error reporting individually; do not inject
+  CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC, which blocks usage queries in CLI 2.1.302.
 - Require users to finish CLI setup and workspace trust themselves; do not
   auto-accept permission or trust prompts. Handle exit, timeout, malformed
   output, setup requirements, and sign-out explicitly.
