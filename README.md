@@ -107,7 +107,7 @@ Claude CLI 的 `/usage` 在查询失败时，可能显示 `Showing last-known us
 
 ## 数据来源与限制
 
-ClaudeMeter 执行 `claude auth status --json` 获取登录状态，通过伪终端运行交互式 Claude Code 的 `/usage` 读取额度。认证由 Claude CLI 管理；应用不读取 Claude 的认证文件，也不自行访问未公开的用量 HTTP 接口。该过程不提交模型提示词，并禁用工具与 hooks。应用分别关闭 CLI 的遥测、错误上报与自动更新；用量查询保持可用。
+ClaudeMeter 执行 `claude auth status --json` 获取登录状态，通过伪终端运行交互式 Claude Code 的 `/usage` 读取额度。认证由 Claude CLI 管理；应用不读取 Claude 的认证文件，也不自行访问未公开的用量 HTTP 接口。该过程不提交模型提示词，并禁用工具与 hooks。应用分别关闭 CLI 的遥测、错误上报与自动更新；用量查询保持可用。读取时会处理 CLI 的终端行擦除与光标移动，避免将已清除的“刷新中”提示误判为仍未完成。
 
 `/usage` 是终端界面，**不是稳定的结构化用量 API**。CLI 版本、输出格式、账户类型、首次设置或网络状况都可能影响读取。遇到未识别或不完整的输出时，应用显示错误，保留上次成功数据并标记为过期；不会把解析失败当作 0% 用量。账户切换会清除先前账户的可见额度。
 

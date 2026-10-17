@@ -63,6 +63,29 @@ expect(ClaudeUsageParser.blockingError(in: "Choose the text style that looks bes
 expect(ClaudeUsageParser.parse("Current session\n20% used\nCurrent wee") == nil, "Truncated panel cannot become fresh")
 expect(ClaudeUsageParser.parse(panel.replacingOccurrences(of: "Esc to cancel", with: "Refreshing…\nEsc to cancel")) == nil,
        "Seeded panel still refreshing cannot become fresh")
+// Claude 2.1.302 clears the final two rows after its network request succeeds.
+// The screen-reader transcript does not repeat the quota headings on this repaint.
+let refreshingPanel = panel.replacingOccurrences(of: "Esc to cancel", with: "Refreshing…\nEsc to cancel")
+let completedRepaint = refreshingPanel + "\u{1B}[2K\u{1B}[1A\u{1B}[2K\u{1B}[GEsc to cancel"
+expect(ClaudeUsageParser.parse(completedRepaint, now: now, timeZone: zone) == windows,
+       "Erasing Refreshing after a successful request makes the final complete screen readable")
+let terminalNegotiation = "\u{1B}7\u{1B}[r\u{1B}8\u{1B}[?2004h\u{1B}[?2031h\u{1B}[?1004h\u{1B}[>0q\u{1B}[?u\u{1B}[c\u{1B}[>4m\u{1B}[<u"
+expect(ClaudeUsageParser.parse(terminalNegotiation + completedRepaint, now: now, timeZone: zone) == windows,
+       "Observed CLI terminal negotiation preserves the final screen")
+expect(ClaudeTerminalScreen.render("\u{1B}[9999B") == nil,
+       "Terminal cursor movement stays within the bounded capture")
+expect(ClaudeTerminalScreen.render(panel + "\u{1B}[P") == nil,
+       "Unsupported destructive terminal operations fail conservatively")
+expect(ClaudeUsageParser.parse(refreshingPanel) == nil, "An uncleared refreshing screen remains stale")
+let replacedFailure = "Showing last-known usage\n" + panel + "\u{1B}[2J\u{1B}[H" + panel
+expect(ClaudeUsageParser.parse(replacedFailure, now: now, timeZone: zone) == windows,
+       "Cleared terminal failures do not contaminate a subsequent complete screen")
+expect(ClaudeUsageParser.parse(panel + "\u{1B}[2K") == nil,
+       "Erasing the completion footer cannot turn a partial repaint into fresh data")
+expect(ClaudeUsageParser.parse(panel + "\u{1B}[") == nil,
+       "An incomplete terminal control sequence waits for the next chunk")
+expect(ClaudeUsageParser.blockingError(in: panel + "\u{1B}[") == nil,
+       "Split terminal sequences do not prematurely abort capture")
 let terminalJSON = "\u{1B}7\u{1B}[r\u{1B}8{\"loggedIn\":false}\u{1B}(B\u{0F}\u{1B}7\u{1B}[r\u{1B}8"
 expect(ClaudeUsageParser.clean(terminalJSON) == "{\"loggedIn\":false}", "Claude 2.1.217 terminal save/restore chatter")
 let loggedOut = try JSONDecoder().decode(ClaudeAuthStatus.self,

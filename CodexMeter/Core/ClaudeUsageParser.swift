@@ -55,7 +55,8 @@ nonisolated enum ClaudeUsageParser {
     }
 
     static func blockingError(in text: String) -> ClaudeCLIError? {
-        let lower = clean(text).lowercased()
+        guard let screen = ClaudeTerminalScreen.render(text) else { return nil }
+        let lower = screen.lowercased()
         if ["do you trust", "trust this folder", "ready to code here", "choose the text style",
             "enter selection", "select login method"].contains(where: lower.contains) {
             return .setupRequired
@@ -75,8 +76,8 @@ nonisolated enum ClaudeUsageParser {
     }
 
     static func parse(_ text: String, now: Date = Date(), timeZone: TimeZone = .current) -> [CodexUsageWindow]? {
-        let clean = clean(text)
-        guard blockingError(in: clean) == nil,
+        guard let clean = ClaudeTerminalScreen.render(text),
+              blockingError(in: clean) == nil,
               let start = clean.range(of: "Current session", options: [.caseInsensitive, .backwards]) else {
             return nil
         }
