@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import AppKit
 
 final class AppSettings {
     enum Destination { case notifications }
@@ -87,8 +88,8 @@ struct Integration {
         try await Task.sleep(nanoseconds: 200_000_000)
     }
 
-    static func until(_ message: String, _ condition: () -> Bool) async throws {
-        let deadline = Date().addingTimeInterval(10)
+    static func until(_ message: String, timeout: TimeInterval = 10, _ condition: () -> Bool) async throws {
+        let deadline = Date().addingTimeInterval(timeout)
         while !condition(), Date() < deadline {
             try await Task.sleep(nanoseconds: 10_000_000)
         }
@@ -110,7 +111,21 @@ struct Integration {
             windowDurationMins: 10_080, resetsAt: sampledAt.addingTimeInterval(604_800))]
     }
 
-    static func main() async throws {
+    static func main() {
+        // The production service uses Foundation timers on the main run loop.
+        // Keep that loop running while the asynchronous checks await real callbacks.
+        Task {
+            do {
+                try await runChecks()
+                exit(EXIT_SUCCESS)
+            } catch {
+                fatalError("Service integration failed: \(error)")
+            }
+        }
+        CFRunLoopRun()
+    }
+
+    static func runChecks() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("claude-service-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -150,6 +165,13 @@ struct Integration {
             service.refreshIfNeeded(maxAge: 0)
             try await settle()
             check(ClaudeCLIClient.fetchCount == 1, "Restart recovery and refresh clicks respect the failure cooldown")
+            // Wait beyond the normal foreground age so this exercises the failure
+            // cooldown rather than the wake handler's fresh-sample guard.
+            try await Task.sleep(nanoseconds: UInt64((ClaudeRefreshSchedule.foregroundInterval + 0.2) * 1_000_000_000))
+            NSWorkspace.shared.notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+            try await settle()
+            check(ClaudeCLIClient.fetchCount == 1 && service.isStale,
+                  "Wake preserves the failure cooldown after the normal refresh age")
             check(notifications.evaluations == 0 && push.evaluations == 0, "Restoration sends no quota notifications")
             let count = try await store.quotaSamples(since: .distantPast, accountKey: keyA).count
             check(count == seededCount, "Restoration adds no fresh history rows")
@@ -172,6 +194,27 @@ struct Integration {
             check(!service.isStale && service.errorMessage == nil, "Fresh response clears stale state and errors")
             check(notifications.evaluations == 1 && push.evaluations == 1,
                   "Only the fresh response evaluates quota notifications")
+            service.setPopoverVisible(true)
+            NSWorkspace.shared.notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+            try await settle()
+            check(ClaudeCLIClient.fetchCount == 1, "Immediate wake does not duplicate a fresh quota request")
+            let firstUpdated = service.lastUpdated!
+            try await until("Visible popover automatically refreshes without a manual request",
+                            timeout: ClaudeRefreshSchedule.foregroundInterval + 5) {
+                ClaudeCLIClient.fetchCount == 2 && !service.isRefreshInFlight
+                    && service.lastUpdated! > firstUpdated
+            }
+            check(service.windows == freshWindows && !service.isStale,
+                  "Automatic refresh preserves valid quota and advances its observation time")
+            service.setPopoverVisible(false)
+            let automaticUpdated = service.lastUpdated!
+            try await Task.sleep(nanoseconds: UInt64((ClaudeRefreshSchedule.foregroundInterval + 0.2) * 1_000_000_000))
+            check(ClaudeCLIClient.fetchCount == 2, "Hidden popover uses the longer background interval")
+            NSWorkspace.shared.notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+            try await until("Wake refreshes an aged sample before the background timer is due", timeout: 5) {
+                ClaudeCLIClient.fetchCount == 3 && !service.isRefreshInFlight
+                    && service.lastUpdated! > automaticUpdated
+            }
         }
 
         do {
@@ -192,6 +235,6 @@ struct Integration {
             let count = try await store.quotaSamples(since: .distantPast, accountKey: keyB).count
             check(count == 0, "Account switching does not copy history into the new account")
         }
-        print("Claude service integration checks passed: real SQLite restart recovery, stale state, timestamps, cooldown, fresh response, account isolation.")
+        print("Claude service integration checks passed: real SQLite restart recovery, stale state, timestamps, cooldown, automatic timer, wake handling, fresh response, account isolation.")
     }
 }
