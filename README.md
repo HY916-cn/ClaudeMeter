@@ -2,13 +2,13 @@
 
 ClaudeMeter 是一款原生 macOS 菜单栏应用，通过本机安装的 **Claude Code CLI** 读取 Claude 订阅额度，显示剩余额度、重置时间和本地历史曲线。
 
-本项目基于 [Raycal 的 CodexMeter](https://github.com/raycalrui/CodexMeter)（上游提交 `4c6baee`、版本 1.7.0）移植，沿用其 SwiftUI 菜单栏、图表、设置与历史存储设计。ClaudeMeter 当前版本为 **0.1.4**，是独立的社区移植项目，与 Anthropic 无隶属关系。
+本项目基于 [Raycal 的 CodexMeter](https://github.com/raycalrui/CodexMeter)（上游提交 `4c6baee`、版本 1.7.0）移植，沿用其 SwiftUI 菜单栏、图表、设置与历史存储设计。ClaudeMeter 当前版本为 **0.1.5**，是独立的社区移植项目，与 Anthropic 无隶属关系。
 
 ## 下载与安装
 
 - [GitHub 仓库](https://github.com/HY916-cn/ClaudeMeter)
-- [v0.1.4 发行版本](https://github.com/HY916-cn/ClaudeMeter/releases/tag/v0.1.4)
-- [macOS Apple Silicon 安装包](https://github.com/HY916-cn/ClaudeMeter/releases/download/v0.1.4/ClaudeMeter-0.1.4-macOS-arm64.zip)
+- [v0.1.5 发行版本](https://github.com/HY916-cn/ClaudeMeter/releases/tag/v0.1.5)
+- [macOS Apple Silicon 安装包](https://github.com/HY916-cn/ClaudeMeter/releases/download/v0.1.5/ClaudeMeter-0.1.5-macOS-arm64.zip)
 
 解压 ZIP，将 `ClaudeMeter.app` 拖入“应用程序”后打开。发行包使用 ad-hoc 签名，尚未经过 Apple 公证；首次打开可能需要在“系统设置 → 隐私与安全性”中确认打开。发行页提供 SHA-256 校验文件。
 
@@ -119,7 +119,7 @@ ClaudeMeter 执行 `claude auth status --json` 获取登录状态，通过伪终
 从 **0.1.4** 起，ClaudeMeter 使用与原项目相同的 [Sparkle](https://sparkle-project.org/) 更新框架。更新清单托管在本仓库，安装包托管在 [GitHub Releases](https://github.com/HY916-cn/ClaudeMeter/releases)。
 
 > [!IMPORTANT]
-> **0.1.3 及更早版本需要先手动安装 0.1.4 一次，之后才能使用应用内更新。** 退出旧版，下载并解压最新 ZIP，把 `ClaudeMeter.app` 替换到“应用程序”，再打开新版；账户配置和本地历史会保留。
+> **0.1.3 及更早版本需要先手动安装最新版本一次，之后才能使用应用内更新。** 退出旧版，下载并解压最新 ZIP，把 `ClaudeMeter.app` 替换到“应用程序”，再打开新版；账户配置和本地历史会保留。
 
 1. 打开菜单栏弹窗 → **设置 → 关于 → 软件更新**。
 2. 点击 **检查更新**，有新版本时按提示下载并安装，应用会重启到新版。
@@ -129,7 +129,7 @@ ClaudeMeter 执行 `claude auth status --json` 获取登录状态，通过伪终
 
 ## 额度刷新频率
 
-正常自动刷新间隔为弹窗打开时 5 分钟、后台 10 分钟；手动刷新至少间隔 60 秒，并遵守失败后的冷却。CLI 返回缓存或明确限流时，按 5、10、20、30 分钟逐步延长重试间隔，成功后恢复正常频率。失败时保留上次成功数据、更新时间与过期标记。CLI 未返回可区分账户的身份时，只显示即时额度，暂停历史记录和额度通知。
+正常自动刷新间隔为**弹窗打开时 1 分钟、后台 2 分钟**。打开弹窗或 Mac 从睡眠唤醒时，如果距离上次查询已满 1 分钟，会立即发起刷新；正在进行的查询会继续完成。手动刷新至少间隔 60 秒，并遵守失败后的冷却。CLI 返回缓存或明确限流时，按 5、10、20、30 分钟逐步延长重试间隔，成功后恢复正常频率。失败时保留上次成功数据、更新时间与过期标记。CLI 未返回可区分账户的身份时，只显示即时额度，暂停历史记录和额度通知。
 
 ## 本地数据与隐私
 

@@ -23,6 +23,7 @@ final class CodexUsageService: ObservableObject {
     private var client: ClaudeCLIClient?
     private var refreshTimer: Timer?
     private var terminationObserver: NSObjectProtocol?
+    private var wakeObserver: NSObjectProtocol?
     private var isPopoverVisible = false
     private var lastHistorySnapshot: [CodexUsageWindow]?
     private var lastHistoryAccountKey: String?
@@ -40,6 +41,13 @@ final class CodexUsageService: ObservableObject {
         terminationObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification, object: nil, queue: .main
         ) { [weak self] _ in self?.client?.cancel() }
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            self.refreshIfNeeded()
+            self.installRefreshTimer()
+        }
         DispatchQueue.main.async { [weak self] in
             self?.start()
         }
@@ -150,7 +158,7 @@ final class CodexUsageService: ObservableObject {
                 self.performRefresh(manual: false)
             }
         }
-        timer.tolerance = isPopoverVisible ? 5 : 20
+        timer.tolerance = isPopoverVisible ? 1 : 5
         RunLoop.main.add(timer, forMode: .common)
         refreshTimer = timer
     }
@@ -275,6 +283,7 @@ final class CodexUsageService: ObservableObject {
     deinit {
         refreshTimer?.invalidate()
         if let terminationObserver { NotificationCenter.default.removeObserver(terminationObserver) }
+        if let wakeObserver { NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver) }
         client?.cancel()
     }
 }

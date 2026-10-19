@@ -1,8 +1,8 @@
 import Foundation
 
 nonisolated struct ClaudeRefreshSchedule {
-    static let foregroundInterval: TimeInterval = 300
-    static let backgroundInterval: TimeInterval = 600
+    static let foregroundInterval: TimeInterval = 60
+    static let backgroundInterval: TimeInterval = 120
     static let manualMinimumInterval: TimeInterval = 60
 
     private(set) var lastAttempt: Date?
