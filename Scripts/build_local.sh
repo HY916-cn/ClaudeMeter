@@ -5,6 +5,7 @@ set -euo pipefail
 TASK_PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 TASK_BUILD_DIR="$TASK_PROJECT_DIR/.build/local"
 TASK_APP="$TASK_PROJECT_DIR/dist/ClaudeMeter.app"
+TASK_SPARKLE_DIR="$(bash "$TASK_PROJECT_DIR/Scripts/fetch_sparkle.sh")"
 TASK_SDK="${SDKROOT:-$(xcrun --sdk macosx --show-sdk-path)}"
 # macOS 27's State macro needs an Xcode-only plugin; the macOS 26 SDK uses property wrappers.
 if [[ -z "${SDKROOT:-}" && -d /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk ]]; then
@@ -20,8 +21,11 @@ done < <(find "$TASK_PROJECT_DIR/CodexMeter" -name '*.swift' -print0)
 xcrun swiftc -parse-as-library -swift-version 5 -default-isolation MainActor \
   -sdk "$TASK_SDK" -target "$(uname -m)-apple-macos13.0" -O -whole-module-optimization \
   -module-cache-path "$TASK_BUILD_DIR/module-cache" \
-  "${TASK_SOURCES[@]}" -lsqlite3 -o "$TASK_BUILD_DIR/ClaudeMeter"
+  "${TASK_SOURCES[@]}" -lsqlite3 -F "$TASK_SPARKLE_DIR" -framework Sparkle \
+  -Xlinker -rpath -Xlinker @executable_path/../Frameworks -o "$TASK_BUILD_DIR/ClaudeMeter"
 cp "$TASK_BUILD_DIR/ClaudeMeter" "$TASK_APP/Contents/MacOS/ClaudeMeter"
+mkdir -p "$TASK_APP/Contents/Frameworks"
+ditto "$TASK_SPARKLE_DIR/Sparkle.framework" "$TASK_APP/Contents/Frameworks/Sparkle.framework"
 
 python3 - "$TASK_PROJECT_DIR" "$TASK_APP" <<'PY'
 import json
@@ -74,8 +78,8 @@ for size in (16, 32, 128, 256, 512):
         shutil.copy2(assets / f'AppIcon-{size * scale}.png', iconset / f'icon_{size}x{size}{suffix}.png')
 subprocess.run(['iconutil', '-c', 'icns', str(iconset), '-o', str(app / 'Contents/Resources/AppIcon.icns')], check=True)
 shutil.copy2(root / 'LICENSE', app / 'Contents/Resources/LICENSE')
+shutil.copy2(root / 'CodexMeter/Sparkle-LICENSE.txt', app / 'Contents/Resources/Sparkle-LICENSE.txt')
 PY
 
-codesign --force --sign - "$TASK_APP"
-codesign --verify --deep --strict "$TASK_APP"
+zsh "$TASK_PROJECT_DIR/Scripts/sign_ad_hoc_release.sh" "$TASK_APP"
 printf '%s\n' "$TASK_APP"

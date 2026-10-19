@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import Sparkle
 
 struct AvailableUpdate: Equatable, Identifiable {
     let version: String
@@ -11,9 +12,8 @@ struct AvailableUpdate: Equatable, Identifiable {
     var id: String { version }
 }
 
-/// Keeps update previews local until ClaudeMeter has its own signed release channel.
 @MainActor
-final class UpdateChecker: ObservableObject {
+final class UpdateChecker: NSObject, ObservableObject, SPUUpdaterDelegate {
     enum State: Equatable {
         case idle
         case checking
@@ -25,9 +25,29 @@ final class UpdateChecker: ObservableObject {
     @Published private(set) var state: State = .idle
     @Published private(set) var automaticallyInstallsUpdates = false
     @Published private(set) var isDeveloperPreview = false
-    private var stateBeforeDeveloperPreview: State?
 
-    init(includePrereleases: Bool = false) {}
+    private let releasesURL = URL(string: "https://github.com/HY916-cn/ClaudeMeter/releases")!
+    private var includesPrereleases: Bool
+    private var stateBeforeDeveloperPreview: State?
+    private var availabilityObservation: AnyCancellable?
+    @Published private(set) var canCheckForUpdates = false
+
+    private var updaterController: SPUStandardUpdaterController!
+
+    init(includePrereleases: Bool = false) {
+        includesPrereleases = includePrereleases
+        super.init()
+
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: self,
+            userDriverDelegate: nil
+        )
+        availabilityObservation = updaterController.updater.publisher(for: \.canCheckForUpdates)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] in self?.canCheckForUpdates = $0 }
+        refreshPreferences()
+    }
 
     var installedVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
@@ -37,26 +57,44 @@ final class UpdateChecker: ObservableObject {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
     }
 
-    var allowsAutomaticUpdates: Bool { false }
-    var canCheckForUpdates: Bool { false }
-
-    func check(includePrereleases: Bool) {
-        clearDeveloperPreview()
-        state = .failed(L10n.string("updates.unavailable"))
+    var allowsAutomaticUpdates: Bool {
+        updaterController.updater.allowsAutomaticUpdates
     }
 
-    func setIncludesPrereleases(_ includePrereleases: Bool) {}
-    func setAutomaticallyInstallsUpdates(_ enabled: Bool) {}
-    func refreshPreferences() {}
+    func check(includePrereleases: Bool) {
+        setIncludesPrereleases(includePrereleases)
+        if isDeveloperPreview {
+            clearDeveloperPreview()
+        }
+        if updaterController.updater.canCheckForUpdates { state = .checking }
+        updaterController.checkForUpdates(nil)
+    }
+
+    func setIncludesPrereleases(_ includePrereleases: Bool) {
+        guard includesPrereleases != includePrereleases else { return }
+        includesPrereleases = includePrereleases
+        updaterController.updater.resetUpdateCycleAfterShortDelay()
+    }
+
+    func setAutomaticallyInstallsUpdates(_ enabled: Bool) {
+        updaterController.updater.automaticallyDownloadsUpdates = enabled
+        refreshPreferences()
+    }
+
+    func refreshPreferences() {
+        automaticallyInstallsUpdates = updaterController.updater.automaticallyDownloadsUpdates
+    }
 
     func showDeveloperUpdatePreview() {
-        if !isDeveloperPreview { stateBeforeDeveloperPreview = state }
+        if !isDeveloperPreview {
+            stateBeforeDeveloperPreview = state
+        }
         isDeveloperPreview = true
         state = .updateAvailable(AvailableUpdate(
             version: "9.9.9",
             title: "ClaudeMeter 9.9.9 Preview",
             releaseNotes: nil,
-            releasePageURL: URL(string: "about:blank")!,
+            releasePageURL: releasesURL.appending(path: "tag/v9.9.9"),
             publishedAt: nil
         ))
     }
@@ -66,5 +104,38 @@ final class UpdateChecker: ObservableObject {
         isDeveloperPreview = false
         state = stateBeforeDeveloperPreview ?? .idle
         stateBeforeDeveloperPreview = nil
+    }
+
+    func allowedChannels(for updater: SPUUpdater) -> Set<String> {
+        includesPrereleases ? ["beta"] : []
+    }
+
+    func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+        guard !isDeveloperPreview else { return }
+        state = .updateAvailable(AvailableUpdate(
+            version: item.displayVersionString,
+            title: item.title,
+            releaseNotes: item.itemDescriptionFormat == "plain-text"
+                ? item.itemDescription
+                : nil,
+            releasePageURL: item.infoURL ?? releasesURL,
+            publishedAt: item.date
+        ))
+    }
+
+    func updaterDidNotFindUpdate(_ updater: SPUUpdater) {
+        guard !isDeveloperPreview else { return }
+        state = .upToDate
+    }
+
+    func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {
+        guard !isDeveloperPreview else { return }
+        let updateError = error as NSError
+        if updateError.domain == SUSparkleErrorDomain,
+           updateError.code == SUError.noUpdateError.rawValue {
+            state = .upToDate
+            return
+        }
+        state = .failed(error.localizedDescription)
     }
 }

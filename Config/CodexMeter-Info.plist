@@ -26,5 +26,23 @@
 	<true/>
 	<key>CFBundleDisplayName</key>
 	<string>ClaudeMeter</string>
+	<key>SUAllowsAutomaticUpdates</key>
+	<true/>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/HY916-cn/ClaudeMeter/main/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>LgSedMIScObYXQvoTs0QvbkWW78lPh0ihl5vM+NT0ts=</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
+	<key>SURequireSignedFeed</key>
+	<true/>
+	<key>SUSendProfileInfo</key>
+	<false/>
 </dict>
 </plist>

@@ -4,7 +4,7 @@
 
 ClaudeMeter is a native macOS 13+ menu bar app, derived from Raycal's
 MIT-licensed CodexMeter (upstream 4c6baee, version 1.7.0). Preserve LICENSE and
-upstream attribution. Current port version: 0.1.3, build 4.
+upstream attribution. Current port version: 0.1.4, build 5.
 
 - App product/display name: ClaudeMeter; bundle identifier: com.huang.ClaudeMeter.
 - Keep internal CodexMeter source paths and core type names to make the fork
@@ -13,9 +13,14 @@ upstream attribution. Current port version: 0.1.3, build 4.
   the locally installed Claude CLI, so the App Sandbox remains disabled.
 - Store history under Application Support/ClaudeMeter, use .claudemeterbackup
   archives, and keep push credentials under com.huang.ClaudeMeter.pushCredentials.
-- Updates are manual. UpdateChecker retains local developer-preview behavior;
-  there is no updater dependency or configured remote feed. Do not attach an
-  upstream project's appcast or signing key to this app.
+- Updates use Sparkle 2.10.0, the repository's signed appcast.xml on raw GitHub,
+  and this repository's GitHub Release assets. Preserve the dedicated public
+  EdDSA key; the private key stays in login Keychain account com.huang.ClaudeMeter.
+  Keep feed and pre-extraction archive signature verification enabled. Never
+  reuse upstream signing keys or feeds. Automatic installation defaults off.
+- Version 0.1.3 and earlier require one manual upgrade to 0.1.4. Verify updater
+  download/install/relaunch with an isolated older-build copy; preserve user data.
+  Upload working release assets before publishing the new signed feed.
 
 ## Source architecture and privacy
 

@@ -8,7 +8,7 @@ struct AboutView: View {
     var embedded = false
     @Environment(\.dismiss) private var dismiss
 
-    private let repositoryURL = URL(string: "https://github.com/raycalrui/CodexMeter")!
+    private let repositoryURL = URL(string: "https://github.com/HY916-cn/ClaudeMeter")!
 
     var body: some View {
         VStack(spacing: 0) {
@@ -55,6 +55,7 @@ struct AboutView: View {
                         updateChecker.installedBuild
                     ))
                     .foregroundStyle(.secondary)
+                    Link(L10n.string("action.open_setup_readme"), destination: URL(string: "https://github.com/HY916-cn/ClaudeMeter#首次使用按顺序完成配置")!)
                     Link(destination: repositoryURL) {
                         Label(L10n.string("about.github"), systemImage: "link")
                     }
@@ -68,14 +69,52 @@ struct AboutView: View {
     private var updateSection: some View {
         GroupBox(L10n.string("updates.title")) {
             VStack(alignment: .leading, spacing: 10) {
-                Text(L10n.string("updates.unavailable"))
+                Text(L10n.string("updates.github_help"))
+                    .font(.caption)
                     .foregroundStyle(.secondary)
-                if updateChecker.isDeveloperPreview {
-                    updateStatus
+
+                Toggle(
+                    L10n.string("updates.include_prereleases"),
+                    isOn: Binding(
+                        get: { settings.includePrereleaseUpdates },
+                        set: { includePrereleases in
+                            settings.includePrereleaseUpdates = includePrereleases
+                            updateChecker.setIncludesPrereleases(includePrereleases)
+                        }
+                    )
+                )
+
+                Toggle(
+                    L10n.string("updates.automatic_install"),
+                    isOn: Binding(
+                        get: { updateChecker.automaticallyInstallsUpdates },
+                        set: { updateChecker.setAutomaticallyInstallsUpdates($0) }
+                    )
+                )
+                .disabled(!updateChecker.allowsAutomaticUpdates)
+
+                updateStatus
+
+                Button {
+                    updateChecker.check(
+                        includePrereleases: settings.includePrereleaseUpdates
+                    )
+                } label: {
+                    if updateChecker.state == .checking {
+                        HStack {
+                            ProgressView().controlSize(.small)
+                            Text(L10n.string("updates.checking"))
+                        }
+                    } else {
+                        Text(L10n.string("updates.check"))
+                    }
                 }
+                .disabled(!updateChecker.canCheckForUpdates)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 6)
+        }
+        .onAppear {
+            updateChecker.refreshPreferences()
         }
     }
 
@@ -115,6 +154,17 @@ struct AboutView: View {
                         .lineLimit(8)
                         .textSelection(.enabled)
                 }
+
+                Button(L10n.string("updates.install")) {
+                    updateChecker.check(
+                        includePrereleases: settings.includePrereleaseUpdates
+                    )
+                }
+
+                Link(
+                    L10n.string("updates.open_release"),
+                    destination: release.releasePageURL
+                )
             }
         }
     }

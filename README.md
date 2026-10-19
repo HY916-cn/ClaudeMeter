@@ -2,13 +2,13 @@
 
 ClaudeMeter 是一款原生 macOS 菜单栏应用，通过本机安装的 **Claude Code CLI** 读取 Claude 订阅额度，显示剩余额度、重置时间和本地历史曲线。
 
-本项目基于 [Raycal 的 CodexMeter](https://github.com/raycalrui/CodexMeter)（上游提交 `4c6baee`、版本 1.7.0）移植，沿用其 SwiftUI 菜单栏、图表、设置与历史存储设计。ClaudeMeter 当前版本为 **0.1.3**，是独立的社区移植项目，与 Anthropic 无隶属关系。
+本项目基于 [Raycal 的 CodexMeter](https://github.com/raycalrui/CodexMeter)（上游提交 `4c6baee`、版本 1.7.0）移植，沿用其 SwiftUI 菜单栏、图表、设置与历史存储设计。ClaudeMeter 当前版本为 **0.1.4**，是独立的社区移植项目，与 Anthropic 无隶属关系。
 
 ## 下载与安装
 
 - [GitHub 仓库](https://github.com/HY916-cn/ClaudeMeter)
-- [v0.1.3 发行版本](https://github.com/HY916-cn/ClaudeMeter/releases/tag/v0.1.3)
-- [macOS Apple Silicon 安装包](https://github.com/HY916-cn/ClaudeMeter/releases/download/v0.1.3/ClaudeMeter-0.1.3-macOS-arm64.zip)
+- [v0.1.4 发行版本](https://github.com/HY916-cn/ClaudeMeter/releases/tag/v0.1.4)
+- [macOS Apple Silicon 安装包](https://github.com/HY916-cn/ClaudeMeter/releases/download/v0.1.4/ClaudeMeter-0.1.4-macOS-arm64.zip)
 
 解压 ZIP，将 `ClaudeMeter.app` 拖入“应用程序”后打开。发行包使用 ad-hoc 签名，尚未经过 Apple 公证；首次打开可能需要在“系统设置 → 隐私与安全性”中确认打开。发行页提供 SHA-256 校验文件。
 
@@ -89,7 +89,7 @@ claude /usage
 
 > [!IMPORTANT]
 > **“数据可能已过期”表示本次刷新没有获得新数据，并不等于登录失效或额度用完。**
-> **如果你使用的是 0.1.2 或更早版本，请先升级到 0.1.3。** 此版本修复了 CLI 查询环境、启动工作目录以及终端局部重绘的兼容问题；旧版可能在终端 `/usage` 正常时仍持续显示缓存或超时。
+> **如果你使用的是 0.1.2 或更早版本，请先升级到最新版本。** 0.1.3 起已修复 CLI 查询环境、启动工作目录以及终端局部重绘的兼容问题；旧版可能在终端 `/usage` 正常时仍持续显示缓存或超时。
 >
 > 如果提示 CLI 只返回缓存用量或查询频率受限，**保留应用运行，等提示中的时间自动重试即可；不要反复点击刷新或重复运行 `/usage`。** 手动刷新同样遵守冷却，避免继续增加查询请求。
 
@@ -114,7 +114,20 @@ ClaudeMeter 执行 `claude auth status --json` 获取登录状态，通过伪终
 
 当前 CLI 来源不提供每日 Token 明细、累计 Token 统计或可手动领取的额度重置机会。相应历史界面保留不可用状态，不以额度百分比推算 Token。缺少可可靠解析的重置时间时，剩余额度仍可显示，时间和进度估计保持不可用。
 
-ClaudeMeter 使用手动安装更新。这个版本没有在线更新源；发布独立更新服务前，应配置自己的签名与发布地址。
+## 应用内更新
+
+从 **0.1.4** 起，ClaudeMeter 使用与原项目相同的 [Sparkle](https://sparkle-project.org/) 更新框架。更新清单托管在本仓库，安装包托管在 [GitHub Releases](https://github.com/HY916-cn/ClaudeMeter/releases)。
+
+> [!IMPORTANT]
+> **0.1.3 及更早版本需要先手动安装 0.1.4 一次，之后才能使用应用内更新。** 退出旧版，下载并解压最新 ZIP，把 `ClaudeMeter.app` 替换到“应用程序”，再打开新版；账户配置和本地历史会保留。
+
+1. 打开菜单栏弹窗 → **设置 → 关于 → 软件更新**。
+2. 点击 **检查更新**，有新版本时按提示下载并安装，应用会重启到新版。
+3. 应用默认每天自动检查一次。**自动下载并安装更新**默认关闭，需要时可在同一页面开启；**包含预发布版本**默认关闭。
+
+更新清单与安装包均通过 ClaudeMeter 独立的 EdDSA 签名验证。更新检查会连接 GitHub，不上传额度历史。若 GitHub 无法连接，稍后重试或前往发行页面手动下载；CLI 登录、首次设置和额度查询仍按上面的教程完成。
+
+## 额度刷新频率
 
 正常自动刷新间隔为弹窗打开时 5 分钟、后台 10 分钟；手动刷新至少间隔 60 秒，并遵守失败后的冷却。CLI 返回缓存或明确限流时，按 5、10、20、30 分钟逐步延长重试间隔，成功后恢复正常频率。失败时保留上次成功数据、更新时间与过期标记。CLI 未返回可区分账户的身份时，只显示即时额度，暂停历史记录和额度通知。
 
@@ -131,7 +144,7 @@ ClaudeMeter 使用手动安装更新。这个版本没有在线更新源；发�
 
 源码目录和核心测试模块保留上游的 `CodexMeter` / `CodexMeterCore` 名称，以便追踪移植差异；应用产物为 `ClaudeMeter.app`。
 
-本机也可使用 Swift 6.4、macOS 26.5 SDK 和 Python 3 直接构建，脚本会生成三语资源、应用图标并进行 ad-hoc 签名：
+本机也可使用 Swift 6.4、macOS 26.5 SDK 和 Python 3 直接构建，脚本会下载并校验固定版本的 Sparkle 2.10.0，生成三语资源、应用图标并进行 ad-hoc 签名：
 
 ```bash
 bash Scripts/build_local.sh
@@ -162,6 +175,20 @@ git diff --check
 推送测试使用模拟响应，不向真实通知服务发送消息。登录时启动、系统通知权限、文件面板和菜单栏交互仍需要在实际运行的签名应用中验证。真实订阅额度读取须以已登录账户完成一次 `/usage` 刷新为验收依据；解析器测试通过并不等于真实账户端到端验证通过。
 
 `test_claude_cli.sh` 无需 XCTest，覆盖终端解析与局部重绘、时区、账户身份、子进程工作目录及环境、进程超时/取消、输出上限与子进程清理。追加 `--live` 可检查当前 CLI，输出只包含登录状态和额度。`swift test` 的完整上游测试套件需要提供 XCTest 的 Xcode 环境。
+
+### 维护者发布更新
+
+更新私钥由 Sparkle 的 `generate_keys --account com.huang.ClaudeMeter` 保存在维护者 Mac 的登录钥匙串中；仓库只保存公钥。保持该钥匙串项目可用，并安全备份，后续版本必须使用同一签名身份。构建完成后：
+
+```bash
+# 把版本号和 build 递增后，构建并打包（示例版本 0.1.4）。
+bash Scripts/build_local.sh
+ditto -c -k --sequesterRsrc --keepParent dist/ClaudeMeter.app ClaudeMeter-0.1.4-macOS-arm64.zip
+zsh Scripts/prepare_sparkle_update.sh v0.1.4 ClaudeMeter-0.1.4-macOS-arm64.zip .build/sparkle-2.10.0/bin
+bash Scripts/verify_sparkle_update.sh ClaudeMeter-0.1.4-macOS-arm64.zip
+```
+
+脚本生成带签名的 `appcast.xml`，保留已有条目并使用对应 GitHub Release 下载地址。**先上传并确认 Release 附件可下载，再提交和推送更新清单。** 生成后不要手动修改已签名的 XML；内容变化时重新生成。预发布版本可在脚本最后追加 `beta` 参数。安装包保持 framework 的符号链接与可执行权限。
 
 ## License
 

@@ -238,6 +238,7 @@ struct ContentView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            setupReadmeLink
             Button(L10n.string("action.retry")) {
                 service.refresh()
             }
@@ -246,11 +247,22 @@ struct ContentView: View {
     }
 
     private func inlineErrorView(_ message: String) -> some View {
-        Label(message, systemImage: "exclamationmark.triangle")
-            .font(.caption)
-            .foregroundStyle(.orange)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: 8) {
+            Label(message, systemImage: "exclamationmark.triangle")
+                .font(.caption)
+                .foregroundStyle(.orange)
+                .fixedSize(horizontal: false, vertical: true)
+            setupReadmeLink
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var setupReadmeLink: some View {
+        Link(destination: URL(string: "https://github.com/HY916-cn/ClaudeMeter#首次使用按顺序完成配置")!) {
+            Label(L10n.string("action.open_setup_readme"), systemImage: "book")
+                .font(.caption)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private var visibleQuotaWindows: [CodexUsageWindow] {
