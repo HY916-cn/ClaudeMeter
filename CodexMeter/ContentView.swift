@@ -239,6 +239,7 @@ struct ContentView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             setupReadmeLink
+            SetupCommandButton()
             Button(L10n.string("action.retry")) {
                 service.refresh()
             }
@@ -253,6 +254,7 @@ struct ContentView: View {
                 .foregroundStyle(.orange)
                 .fixedSize(horizontal: false, vertical: true)
             setupReadmeLink
+            SetupCommandButton()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

@@ -37,6 +37,8 @@ upstream attribution. Current port version: 0.1.5, build 6.
 - Require users to finish CLI setup and workspace trust themselves; do not
   auto-accept permission or trust prompts. Handle exit, timeout, malformed
   output, setup requirements, and sign-out explicitly.
+- Error panels and About provide a copyable setup command with a Terminal
+  instruction, alongside the README tutorial. Copying never runs the command.
 - Keep the CLI child environment's PWD equal to its dedicated working directory;
   inherited workspace paths can stall startup from a desktop launch. Verify
   refreshes from the app launched through Launch Services as well as CLI tests.

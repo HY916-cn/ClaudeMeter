@@ -56,6 +56,7 @@ struct AboutView: View {
                     ))
                     .foregroundStyle(.secondary)
                     Link(L10n.string("action.open_setup_readme"), destination: URL(string: "https://github.com/HY916-cn/ClaudeMeter#首次使用按顺序完成配置")!)
+                    SetupCommandButton()
                     Link(destination: repositoryURL) {
                         Label(L10n.string("about.github"), systemImage: "link")
                     }
