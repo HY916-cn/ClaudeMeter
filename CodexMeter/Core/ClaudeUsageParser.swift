@@ -132,7 +132,7 @@ nonisolated enum ClaudeUsageParser {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = zone
         formatter.isLenient = false
-        formatter.defaultDate = now
+        formatter.defaultDate = calendar.startOfDay(for: now)
         let timeFormats = ["h:mma", "h:mm a", "ha", "h a", "HH:mm"]
         let dateFormats = ["MMM d h:mma", "MMM d h:mm a", "MMM d ha", "MMM d h a", "MMM d HH:mm",
                            "MMM d, h:mma", "MMM d, ha", "MMM d, HH:mm"]

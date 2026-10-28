@@ -37,6 +37,19 @@ expect(windows.map(\.remainingPercent) == [77, 59, 92], "Used and remaining dire
 expect(windows[0].resetsAt == now.addingTimeInterval(3600), "Session time zone")
 expect(windows[1].resetsAt == now.addingTimeInterval(3 * 86400), "Weekly date")
 expect(windows[2].id == "claude-sonnet-only-secondary", "Scoped identity")
+let betweenMinutes = ISO8601DateFormatter().date(from: "2026-10-17T03:37:42Z")!
+let laterWindows = ClaudeUsageParser.parse(panel, now: betweenMinutes, timeZone: zone)!
+expect(laterWindows.map(\.resetsAt) == windows.map(\.resetsAt),
+       "Hour-only resets stay fixed across observation minutes and seconds")
+expect(ClaudeUsageParser.resetDate("12:15pm (Asia/Singapore)", now: betweenMinutes,
+       timeZone: zone, durationMinutes: 300) == ISO8601DateFormatter().date(from: "2026-10-17T04:15:00Z"),
+       "Session resets retain explicit minutes")
+expect(ClaudeUsageParser.resetDate("Oct 20 at 11:25am (Asia/Singapore)", now: betweenMinutes,
+       timeZone: zone, durationMinutes: 10_080) == ISO8601DateFormatter().date(from: "2026-10-20T03:25:00Z"),
+       "Weekly resets retain explicit minutes")
+expect(ClaudeUsageParser.resetDate("Oct 20 at 11am (America/Los_Angeles)", now: betweenMinutes,
+       timeZone: zone, durationMinutes: 10_080) == ISO8601DateFormatter().date(from: "2026-10-20T18:00:00Z"),
+       "Named reset time zones override the local time zone")
 expect(ClaudeUsageParser.parse("Current session\n101% used\nEsc to cancel") == nil, "Reject invalid percentage")
 expect(ClaudeUsageParser.parse("Current session\nUnknown\nCurrent week (all models)\n23% used\nEsc to cancel") == nil,
        "Do not borrow another window's percentage")

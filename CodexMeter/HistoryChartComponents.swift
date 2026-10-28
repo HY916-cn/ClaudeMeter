@@ -103,7 +103,7 @@ struct QuotaHistoryChart: View {
         .chartXAxis {
             if showsAxes {
                 if series.range == .currentCycle {
-                    AxisMarks(values: .stride(by: .day)) { value in
+                    AxisMarks(values: .stride(by: usesHourlyAxis ? .hour : .day)) { value in
                         AxisGridLine().foregroundStyle(.secondary.opacity(0.12))
                         AxisValueLabel {
                             if let date = value.as(Date.self) {
@@ -209,8 +209,12 @@ struct QuotaHistoryChart: View {
     private func axisLabel(for date: Date, usesWeekday: Bool) -> String {
         let formatter = DateFormatter()
         formatter.locale = L10n.locale
-        formatter.setLocalizedDateFormatFromTemplate(usesWeekday ? "EEE" : "MMMd")
+        formatter.setLocalizedDateFormatFromTemplate(usesHourlyAxis ? "jm" : (usesWeekday ? "EEE" : "MMMd"))
         return formatter.string(from: date)
+    }
+
+    private var usesHourlyAxis: Bool {
+        series.end.timeIntervalSince(series.start) <= 24 * 60 * 60
     }
 }
 

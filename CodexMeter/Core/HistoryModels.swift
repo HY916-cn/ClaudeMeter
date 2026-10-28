@@ -404,7 +404,8 @@ enum QuotaCycleDetection {
         previousRemaining: Int,
         previousReset: Date?,
         currentRemaining: Int,
-        currentReset: Date?
+        currentReset: Date?,
+        tolerance: TimeInterval = resetTolerance
     ) -> Bool {
         if currentRemaining - previousRemaining >= replenishmentThreshold {
             return true
@@ -414,7 +415,8 @@ enum QuotaCycleDetection {
             previousRemaining: previousRemaining,
             previousReset: previousReset,
             currentRemaining: currentRemaining,
-            currentReset: currentReset
+            currentReset: currentReset,
+            tolerance: tolerance
         )
     }
 
@@ -422,7 +424,8 @@ enum QuotaCycleDetection {
         previousRemaining: Int,
         previousReset: Date?,
         currentRemaining: Int,
-        currentReset: Date?
+        currentReset: Date?,
+        tolerance: TimeInterval = resetTolerance
     ) -> Bool {
         // The reset countdown is provisional while the previous sample is
         // unused. Its transition to a locked reset after first use remains the
@@ -433,7 +436,7 @@ enum QuotaCycleDetection {
 
         switch (previousReset, currentReset) {
         case let (previous?, current?):
-            return abs(current.timeIntervalSince(previous)) > resetTolerance
+            return abs(current.timeIntervalSince(previous)) > tolerance
         case (nil, nil):
             return false
         default:
@@ -458,7 +461,8 @@ enum QuotaCycleDetection {
                 previousRemaining: previous.remainingPercent,
                 previousReset: previous.resetsAt,
                 currentRemaining: sample.remainingPercent,
-                currentReset: sample.resetsAt
+                currentReset: sample.resetsAt,
+                tolerance: historicalResetTolerance(for: sample)
             ) {
                 result.append(current)
                 current = [sample]
@@ -469,6 +473,12 @@ enum QuotaCycleDetection {
 
         result.append(current)
         return result
+    }
+
+    private nonisolated static func historicalResetTolerance(for sample: QuotaHistorySample) -> TimeInterval {
+        let source = sample.windowID.split(separator: ":", maxSplits: 2).last ?? ""
+        // Older hour-only Claude resets inherited the observation minute.
+        return source == "claude" || source.hasPrefix("claude-") ? 60 * 60 : resetTolerance
     }
 
     /// Ignores a short-lived stale snapshot whose reset date moves backward and
@@ -483,10 +493,11 @@ enum QuotaCycleDetection {
 
         while index < samples.count {
             let candidate = samples[index]
+            let tolerance = historicalResetTolerance(for: candidate)
             guard let stableSample = filtered.last,
                   let stableReset = stableSample.resetsAt,
                   let candidateReset = candidate.resetsAt,
-                  candidateReset.timeIntervalSince(stableReset) < -resetTolerance,
+                  candidateReset.timeIntervalSince(stableReset) < -tolerance,
                   candidate.remainingPercent - stableSample.remainingPercent
                     < replenishmentThreshold else {
                 filtered.append(candidate)
@@ -505,14 +516,14 @@ enum QuotaCycleDetection {
                 let sample = samples[cursor]
                 guard let reset = sample.resetsAt else { break }
 
-                if abs(reset.timeIntervalSince(stableReset)) <= resetTolerance {
+                if abs(reset.timeIntervalSince(stableReset)) <= tolerance {
                     returnedToStableReset = !transientReplenished
                         && sample.remainingPercent - stableSample.remainingPercent
                             < replenishmentThreshold
                     break
                 }
 
-                guard abs(reset.timeIntervalSince(candidateReset)) <= resetTolerance else {
+                guard abs(reset.timeIntervalSince(candidateReset)) <= tolerance else {
                     break
                 }
                 if sample.remainingPercent - previousTransientRemaining

@@ -75,6 +75,11 @@ upstream attribution. Current port version: 0.1.5, build 6.
 - Record successful non-stale changes and periodic 15-minute history anchors.
   Keep cycle boundaries, calendar browsing, explicit missing-data shading, raw
   sample persistence, and conservative consumption estimates intact.
+- Parse hour-only CLI resets with zero minutes. Chart cycle detection tolerates
+  up to one hour of Claude reset jitter in older records while retaining quota
+  replenishment boundaries; stored samples and other providers stay unchanged.
+- Current-cycle charts spanning at most one day use hourly ticks and time
+  labels, so five-hour history has a readable horizontal axis.
 - Preserve account-scoped CSV exports and all-account lossless backups.
   Backups must be transactionally consistent, size bounded, integrity checked,
   and recoverable after an interrupted restore. Restore replaces existing

@@ -99,6 +99,39 @@ struct ClaudeRecoveryIntegration {
                "Invalid percentages cannot become a recovered quota")
         expect(ClaudeUsageSnapshot.fromHistorySamples([sample(50, duration: 0), sample(50, duration: 10_080)]) == nil,
                "Invalid or mismatched duration cannot become a recovered quota")
+        func historySample(_ id: Int64, resetOffset: TimeInterval?, remaining: Int = 50,
+                           windowID: String = "duration:10080:claude") -> QuotaHistorySample {
+            QuotaHistorySample(id: id, windowID: windowID, windowName: windowID,
+                sampledAt: time.addingTimeInterval(Double(id) * 60), remainingPercent: remaining,
+                windowDurationMins: windowID == "duration:300:claude" ? 300 : 10_080,
+                resetsAt: resetOffset.map { time.addingTimeInterval(86_400 + $0) },
+                startsSegment: false, isAnchor: false, isStale: false, source: .refresh)
+        }
+        let minuteJitter = [0.0, 3_540, -60, 1_800, 0].enumerated().map {
+            historySample(Int64($0.offset + 1), resetOffset: $0.element)
+        }
+        let jitterCycles = QuotaCycleDetection.segments(minuteJitter)
+        expect(jitterCycles.count == 1 && jitterCycles.flatMap { $0 } == minuteJitter,
+               "Legacy Claude reset minute jitter preserves every sample in one cycle")
+        expect(QuotaCycleDetection.segments([
+            historySample(1, resetOffset: 0, windowID: "duration:300:claude"),
+            historySample(2, resetOffset: 18_000, remaining: 49, windowID: "duration:300:claude")
+        ]).count == 2, "A five-hour Claude reset starts a new cycle")
+        expect(QuotaCycleDetection.segments([
+            historySample(1, resetOffset: 0), historySample(2, resetOffset: 0, remaining: 90)
+        ]).count == 2, "Claude replenishment starts a cycle even with unchanged reset timing")
+        expect(QuotaCycleDetection.segments([
+            historySample(1, resetOffset: 0), historySample(2, resetOffset: nil)
+        ]).count == 2, "Unknown reset transitions retain their cycle boundary")
+        expect(QuotaCycleDetection.segments([
+            historySample(1, resetOffset: 0, windowID: "duration:10080:codex"),
+            historySample(2, resetOffset: 2_700, windowID: "duration:10080:codex")
+        ]).count == 2, "Other quota sources retain thirty-minute reset tolerance")
+        expect(QuotaCycleDetection.segments([
+            historySample(1, resetOffset: 0), historySample(2, resetOffset: -7_200),
+            historySample(3, resetOffset: -2_700)
+        ]).flatMap { $0 }.map(\.id) == [1, 3],
+               "Claude transient reset filtering uses the same minute-jitter tolerance")
         print("Claude recovery integration passed: restart, original age, reset semantics, read-only recovery, and account isolation")
     }
 }
