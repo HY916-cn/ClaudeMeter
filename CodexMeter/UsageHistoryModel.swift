@@ -4,8 +4,6 @@ import Foundation
 /// Bridges the actor-backed history store to SwiftUI without blocking the menu bar.
 @MainActor
 final class UsageHistoryModel: ObservableObject {
-    @Published private(set) var quotaWindows: [QuotaHistoryWindow] = []
-    @Published private(set) var quotaSamples: [QuotaHistorySample] = []
     @Published private(set) var tokenUsage: TokenUsageSnapshot?
     @Published private(set) var storageSize: Int64 = 0
     @Published private(set) var isReady = false
@@ -97,11 +95,9 @@ final class UsageHistoryModel: ObservableObject {
         }
     }
 
-    func load(now: Date = Date()) async {
+    func load() async {
         guard let store else { return }
         guard let accountKey = activeAccountKey else {
-            quotaWindows = []
-            quotaSamples = []
             tokenUsage = nil
             storageSize = await store.storageSize()
             return
@@ -114,18 +110,9 @@ final class UsageHistoryModel: ObservableObject {
         }
 
         do {
-            let loadedWindows = try await store.quotaWindows(accountKey: accountKey)
-            // Keep one shared 30-day snapshot for the popover and history window.
-            // Views filter by window and range without overwriting each other's data.
-            let loadedSamples = try await store.quotaSamples(
-                since: now.addingTimeInterval(-30 * 24 * 60 * 60),
-                accountKey: accountKey
-            )
             let loadedTokenUsage = try await store.tokenUsage(accountKey: accountKey)
             let loadedStorageSize = await store.storageSize()
             guard activeAccountKey == accountKey else { return }
-            quotaWindows = loadedWindows
-            quotaSamples = loadedSamples
             tokenUsage = loadedTokenUsage
             storageSize = loadedStorageSize
             errorMessage = nil
@@ -141,8 +128,6 @@ final class UsageHistoryModel: ObservableObject {
     ) {
         guard !isRestoring, !needsRestart else { return }
         activeAccountKey = accountKey
-        quotaWindows = []
-        quotaSamples = []
         tokenUsage = nil
         dataRevision += 1
 
@@ -166,8 +151,6 @@ final class UsageHistoryModel: ObservableObject {
 
     func deactivateAccount() {
         activeAccountKey = nil
-        quotaWindows = []
-        quotaSamples = []
         tokenUsage = nil
         dataRevision += 1
         accountPreparationTask = nil
@@ -188,8 +171,6 @@ final class UsageHistoryModel: ObservableObject {
         guard let store else { return }
         do {
             try await store.clearAll()
-            quotaWindows = []
-            quotaSamples = []
             tokenUsage = nil
             dataRevision += 1
             await refreshMetadata()
@@ -260,40 +241,6 @@ final class UsageHistoryModel: ObservableObject {
         return recovery
     }
 
-    func quotaSamples(
-        windowID: String,
-        interval: DateInterval
-    ) async -> [QuotaHistorySample] {
-        guard let store, let accountKey = activeAccountKey else { return [] }
-        do {
-            // Include one full quota cycle before the visible interval so reset
-            // segmentation at the left edge remains accurate.
-            let queryStart = interval.start.addingTimeInterval(-QuotaHistorySeries.duration)
-            return try await store.quotaSamples(
-                windowID: windowID,
-                from: queryStart,
-                before: interval.end,
-                accountKey: accountKey
-            )
-        } catch {
-            errorMessage = error.localizedDescription
-            return []
-        }
-    }
-
-    func oldestQuotaSampleDate(windowID: String) async -> Date? {
-        guard let store, let accountKey = activeAccountKey else { return nil }
-        do {
-            return try await store.oldestQuotaSampleDate(
-                windowID: windowID,
-                accountKey: accountKey
-            )
-        } catch {
-            errorMessage = error.localizedDescription
-            return nil
-        }
-    }
-
     func refreshMetadata() async {
         guard let store else { return }
         do {
@@ -301,11 +248,9 @@ final class UsageHistoryModel: ObservableObject {
                 storageSize = await store.storageSize()
                 return
             }
-            let loadedWindows = try await store.quotaWindows(accountKey: accountKey)
             let loadedTokenUsage = try await store.tokenUsage(accountKey: accountKey)
             let loadedStorageSize = await store.storageSize()
             guard activeAccountKey == accountKey else { return }
-            quotaWindows = loadedWindows
             tokenUsage = loadedTokenUsage
             storageSize = loadedStorageSize
         } catch {

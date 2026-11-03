@@ -3,7 +3,6 @@ import Foundation
 enum PopoverContentSection: String, CaseIterable, Codable, Identifiable, Sendable {
     case quotaWindows
     case resetCredits
-    case quotaHistory
     case tokenActivity
 
     var id: String { rawValue }
@@ -103,14 +102,15 @@ struct PopoverContentConfiguration: Codable, Equatable, Sendable {
     init(from decoder: Decoder) throws {
         let defaults = Self.defaultValue
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        // Ignore retired section identifiers while preserving the user's other choices.
         sectionOrder = try container.decodeIfPresent(
-            [PopoverContentSection].self,
+            [String].self,
             forKey: .sectionOrder
-        ) ?? defaults.sectionOrder
-        hiddenSections = try container.decodeIfPresent(
-            Set<PopoverContentSection>.self,
+        )?.compactMap(PopoverContentSection.init(rawValue:)) ?? defaults.sectionOrder
+        hiddenSections = Set(try container.decodeIfPresent(
+            [String].self,
             forKey: .hiddenSections
-        ) ?? defaults.hiddenSections
+        )?.compactMap(PopoverContentSection.init(rawValue:)) ?? [])
         hiddenQuotaWindowIDs = try container.decodeIfPresent(
             Set<String>.self,
             forKey: .hiddenQuotaWindowIDs

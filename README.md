@@ -1,8 +1,8 @@
 # ClaudeMeter
 
-ClaudeMeter 是一款原生 macOS 菜单栏应用，通过本机安装的 **Claude Code CLI** 读取 Claude 订阅额度，显示剩余额度、重置时间和本地历史曲线。
+ClaudeMeter 是一款原生 macOS 菜单栏应用，通过本机安装的 **Claude Code CLI** 读取 Claude 订阅额度，显示剩余额度、重置时间和消耗进度。
 
-本项目基于 [Raycal 的 CodexMeter](https://github.com/raycalrui/CodexMeter)（上游提交 `4c6baee`、版本 1.7.0）移植，沿用其 SwiftUI 菜单栏、图表、设置与历史存储设计。ClaudeMeter 当前版本为 **0.1.5**，是独立的社区移植项目，与 Anthropic 无隶属关系。
+本项目基于 [Raycal 的 CodexMeter](https://github.com/raycalrui/CodexMeter)（上游提交 `4c6baee`、版本 1.7.0）移植，沿用其 SwiftUI 菜单栏、设置与本地存储设计。ClaudeMeter 当前版本为 **0.1.5**，是独立的社区移植项目，与 Anthropic 无隶属关系。
 
 ## 下载与安装
 
@@ -80,7 +80,7 @@ claude /usage
 
 ### 4. 打开 ClaudeMeter，确认首次刷新
 
-打开 `ClaudeMeter.app`，点击 macOS 菜单栏中的 ClaudeMeter 指示器，再点击刷新按钮，等待本次读取完成。应看到剩余额度百分比与更新时间；读取成功后会自动开始记录本地额度历史。
+打开 `ClaudeMeter.app`，点击 macOS 菜单栏中的 ClaudeMeter 指示器，再点击刷新按钮，等待本次读取完成。应看到剩余额度百分比与更新时间；读取成功后会保存本地额度快照，供应用重启时恢复。
 
 > [!WARNING]
 > **已登录，但 ClaudeMeter 仍提示“完成首次设置和目录信任”？请重新执行第 3 步的整段命令。** 必须在上面的专用目录里运行，单独在其他目录执行 `claude` 或反复点击应用刷新，无法完成该目录的信任。
@@ -103,11 +103,10 @@ Claude CLI 的 `/usage` 在查询失败时，可能显示 `Showing last-known us
 
 - 菜单栏双环、百分比及多种紧凑显示方式；按剩余额度自动选择最紧张的窗口，或手动固定窗口。
 - 当前会话与每周额度、CLI 返回的模型专属周额度、重置倒计时，以及有可靠重置时间时的消耗进度比较。
-- 本地额度历史、当前周期及日历区间浏览、CSV 导出、保留期限设置和 `.claudemeterbackup` 备份恢复。
-- 历史图表兼容旧版记录中的重置分钟偏差，避免把同一周期绘成多次重置；原始历史记录保持完整。
+- 账户隔离的本地额度快照，用于重启恢复；支持 CSV 导出、保留期限设置和 `.claudemeterbackup` 备份恢复。
 - 可配置菜单栏和弹窗、浅色/深色外观、英文、简体中文及繁体中文。
 - 本地额度提醒、可选 Bark / Gotify / Telegram / Discord 补充额度通知，以及登录时启动。
-- 开发者预览可检查不同额度状态和图表；预览数据与真实账户历史分开。
+- 开发者预览可检查不同额度状态；预览数据与真实账户历史分开。
 
 ## 数据来源与限制
 

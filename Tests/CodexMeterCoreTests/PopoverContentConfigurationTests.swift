@@ -20,11 +20,10 @@ final class PopoverContentConfigurationTests: XCTestCase {
 
         XCTAssertTrue(configuration.isSectionVisible(.quotaWindows))
         XCTAssertTrue(configuration.isSectionVisible(.resetCredits))
-        XCTAssertTrue(configuration.isSectionVisible(.quotaHistory))
         XCTAssertTrue(configuration.isSectionVisible(.tokenActivity))
         XCTAssertEqual(
             configuration.sectionOrder,
-            [.quotaWindows, .resetCredits, .quotaHistory, .tokenActivity]
+            [.quotaWindows, .resetCredits, .tokenActivity]
         )
         XCTAssertTrue(configuration.isQuotaWindowVisible(fiveHour))
         XCTAssertTrue(configuration.isQuotaWindowVisible(weekly))
@@ -118,7 +117,7 @@ final class PopoverContentConfigurationTests: XCTestCase {
 
         XCTAssertEqual(
             configuration.sectionOrder,
-            [.quotaWindows, .resetCredits, .tokenActivity, .quotaHistory]
+            [.quotaWindows, .tokenActivity, .resetCredits]
         )
         XCTAssertTrue(configuration.isSectionVisible(.resetCredits))
         XCTAssertTrue(configuration.isSectionVisible(.tokenActivity))

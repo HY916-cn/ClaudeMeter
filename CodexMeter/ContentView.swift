@@ -69,8 +69,7 @@ struct ContentView: View {
             service.setPopoverVisible(false)
         }
         .task(id: history.dataRevision) {
-            // Load the preferred weekly cycle whenever the popover appears or
-            // a successful refresh records a new local history sample.
+            // Refresh the token activity snapshot when recorded data changes.
             await history.load()
         }
         .alert(
@@ -280,7 +279,7 @@ struct ContentView: View {
                 return !visibleQuotaWindows.isEmpty
             case .resetCredits:
                 return service.rateLimitResetCredits != nil
-            case .quotaHistory, .tokenActivity:
+            case .tokenActivity:
                 return true
             }
         }
@@ -311,11 +310,6 @@ struct ContentView: View {
                     appearance: settings.developerAppearance
                 )
             }
-        case .quotaHistory:
-            Button(action: openHistoryWindow) {
-                menuQuotaSection
-            }
-            .buttonStyle(.plain)
         case .tokenActivity:
             Button(action: openHistoryWindow) {
                 menuTokenSection
@@ -341,53 +335,6 @@ struct ContentView: View {
                 }
             }
         }
-    }
-
-    private var menuQuotaSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(L10n.string("history.quota.title"))
-                        .font(.subheadline.weight(.semibold))
-                    Text(L10n.string("history.quota.fixed_cycle"))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                if let remaining = menuQuotaRemaining {
-                    VStack(alignment: .trailing, spacing: 1) {
-                        Text("\(remaining)%")
-                            .font(.headline.monospacedDigit())
-                        Text(L10n.string("quota.remaining"))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-
-            if let cycle = menuQuotaCycle {
-                QuotaHistoryChart(series: cycle, showsAxes: false)
-                    .frame(height: 92)
-            } else {
-                HStack(spacing: 8) {
-                    Image(systemName: "chart.xyaxis.line")
-                        .foregroundStyle(HistoryPalette.accent)
-                    Text(L10n.string("history.empty.message"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
-            }
-        }
-        .contentShape(Rectangle())
-        .padding(.vertical, 2)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var menuTokenSection: some View {
@@ -435,25 +382,6 @@ struct ContentView: View {
         .contentShape(Rectangle())
         .padding(.vertical, 2)
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var menuQuotaCycle: QuotaHistorySeries? {
-        let window = QuotaWindowSelection.preferredDefault(from: history.quotaWindows)
-        guard let window else { return nil }
-
-        let samples = history.quotaSamples.filter { $0.windowID == window.id }
-        guard let cycle = QuotaHistorySeries.makeCurrentCycle(
-            samples: samples,
-            window: window,
-            now: Date()
-        ), !cycle.samples.isEmpty else {
-            return nil
-        }
-        return cycle
-    }
-
-    private var menuQuotaRemaining: Int? {
-        menuQuotaCycle?.samples.last?.remainingPercent
     }
 
     private func openHistoryWindow() {
