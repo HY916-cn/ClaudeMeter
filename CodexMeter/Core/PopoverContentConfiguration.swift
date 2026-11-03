@@ -3,7 +3,7 @@ import Foundation
 enum PopoverContentSection: String, CaseIterable, Codable, Identifiable, Sendable {
     case quotaWindows
     case resetCredits
-    case tokenActivity
+    case quotaHistory
 
     var id: String { rawValue }
 }

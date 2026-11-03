@@ -9,9 +9,9 @@ func expect(_ condition: @autoclosure () -> Bool, _ message: String) {
 struct ClaudeRecoveryIntegration {
     @MainActor
     static func main() async throws {
-        let oldPreferences = Data(#"{"sectionOrder":["tokenActivity","quotaHistory","quotaWindows","resetCredits"],"hiddenSections":["quotaHistory","resetCredits"],"hiddenQuotaWindowIDs":["duration:300:claude"],"menuBarQuotaWindowID":"duration:10080:claude"}"#.utf8)
+        let oldPreferences = Data(#"{"sectionOrder":["tokenActivity","quotaHistory","quotaWindows","resetCredits"],"hiddenSections":["tokenActivity","resetCredits"],"hiddenQuotaWindowIDs":["duration:300:claude"],"menuBarQuotaWindowID":"duration:10080:claude"}"#.utf8)
         let preferences = try JSONDecoder().decode(PopoverContentConfiguration.self, from: oldPreferences)
-        expect(preferences.sectionOrder == [.tokenActivity, .quotaWindows, .resetCredits],
+        expect(preferences.sectionOrder == [.quotaHistory, .quotaWindows, .resetCredits],
                "Retired sections are removed without changing the remaining order")
         expect(preferences.hiddenSections == [.resetCredits], "Retain supported hidden sections")
         expect(preferences.hiddenQuotaWindowIDs == ["duration:300:claude"]
@@ -20,10 +20,16 @@ struct ClaudeRecoveryIntegration {
         let encodedPreferences = try JSONEncoder().encode(preferences)
         let roundTrip = try JSONDecoder().decode(PopoverContentConfiguration.self, from: encodedPreferences)
         expect(roundTrip == preferences, "Migrated preferences survive saving and reopening")
-        expect(!String(decoding: encodedPreferences, as: UTF8.self).contains("quotaHistory"),
+        expect(!String(decoding: encodedPreferences, as: UTF8.self).contains("tokenActivity"),
                "Retired section is absent from saved preferences")
         let defaultPreferences = try JSONDecoder().decode(PopoverContentConfiguration.self, from: Data("{}".utf8))
         expect(defaultPreferences == .defaultValue, "Empty preferences use current defaults")
+
+        let intermediatePreferences = Data(#"{"sectionOrder":["tokenActivity","quotaWindows","resetCredits"],"hiddenSections":["tokenActivity"]}"#.utf8)
+        let restoredPreferences = try JSONDecoder().decode(PopoverContentConfiguration.self, from: intermediatePreferences)
+        expect(restoredPreferences.sectionOrder == [.quotaWindows, .resetCredits, .quotaHistory]
+               && restoredPreferences.isSectionVisible(.quotaHistory),
+               "Quota history is restored for preferences saved by the intermediate version")
 
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

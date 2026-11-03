@@ -70,12 +70,16 @@ upstream attribution. Current port version: 0.1.5, build 6.
   from missing data. Keep token counts and quota percentages separate.
 - Only compute reset countdowns, time progress, and pace when duration and reset
   time are known. Keep each returned quota window independently selectable.
-- Claude CLI /usage does not expose daily token history or banked resets.
-  Preserve honest unavailable states; do not invent statistics or reset credits.
+- The history window presents quota snapshots, cycle and calendar browsing,
+  and storage controls. Do not invent statistics or reset credits.
 - Record successful non-stale changes and periodic 15-minute history anchors.
-  Keep raw samples for account-scoped restart recovery and data exports.
-- Parse hour-only CLI resets with zero minutes.
-- The history window presents token activity and storage controls.
+  Keep cycle boundaries, calendar browsing, explicit missing-data shading, raw
+  sample persistence, and conservative consumption estimates intact.
+- Parse hour-only CLI resets with zero minutes. Chart cycle detection tolerates
+  up to one hour of Claude reset jitter in older records while retaining quota
+  replenishment boundaries; stored samples and other providers stay unchanged.
+- Current-cycle charts spanning at most one day use hourly ticks and time
+  labels, so five-hour history has a readable horizontal axis.
 - Preserve account-scoped CSV exports and all-account lossless backups.
   Backups must be transactionally consistent, size bounded, integrity checked,
   and recoverable after an interrupted restore. Restore replaces existing

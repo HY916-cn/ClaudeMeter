@@ -70,7 +70,6 @@ struct CodexMeterApp: App {
 
         Window("ClaudeMeter", id: CodexMeterWindowID.history) {
             UsageHistoryView(
-                service: usageService,
                 settings: settings,
                 history: history
             )

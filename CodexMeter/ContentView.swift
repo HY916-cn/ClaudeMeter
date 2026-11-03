@@ -69,7 +69,8 @@ struct ContentView: View {
             service.setPopoverVisible(false)
         }
         .task(id: history.dataRevision) {
-            // Refresh the token activity snapshot when recorded data changes.
+            // Load the preferred weekly cycle whenever the popover appears or
+            // a successful refresh records a new local history sample.
             await history.load()
         }
         .alert(
@@ -279,7 +280,7 @@ struct ContentView: View {
                 return !visibleQuotaWindows.isEmpty
             case .resetCredits:
                 return service.rateLimitResetCredits != nil
-            case .tokenActivity:
+            case .quotaHistory:
                 return true
             }
         }
@@ -310,9 +311,9 @@ struct ContentView: View {
                     appearance: settings.developerAppearance
                 )
             }
-        case .tokenActivity:
+        case .quotaHistory:
             Button(action: openHistoryWindow) {
-                menuTokenSection
+                menuQuotaSection
             }
             .buttonStyle(.plain)
         }
@@ -337,24 +338,24 @@ struct ContentView: View {
         }
     }
 
-    private var menuTokenSection: some View {
+    private var menuQuotaSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(L10n.string("history.tokens.title"))
+                    Text(L10n.string("history.quota.title"))
                         .font(.subheadline.weight(.semibold))
-                    Text(TokenActivityRange.month.localizedName)
+                    Text(L10n.string("history.quota.fixed_cycle"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
 
                 Spacer()
 
-                if !menuTokenPoints.isEmpty {
+                if let remaining = menuQuotaRemaining {
                     VStack(alignment: .trailing, spacing: 1) {
-                        Text(compactToken(menuTokenTotal))
+                        Text("\(remaining)%")
                             .font(.headline.monospacedDigit())
-                        Text(L10n.string("history.tokens.total"))
+                        Text(L10n.string("quota.remaining"))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -365,18 +366,18 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
             }
 
-            if menuTokenPoints.isEmpty {
+            if let cycle = menuQuotaCycle {
+                QuotaHistoryChart(series: cycle, showsAxes: false)
+                    .frame(height: 92)
+            } else {
                 HStack(spacing: 8) {
-                    Image(systemName: "chart.bar.fill")
+                    Image(systemName: "chart.xyaxis.line")
                         .foregroundStyle(HistoryPalette.accent)
-                    Text(historySummary)
+                    Text(L10n.string("history.empty.message"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
-            } else {
-                CompactTokenActivityChart(points: menuTokenPoints)
-                    .frame(height: 92)
             }
         }
         .contentShape(Rectangle())
@@ -384,38 +385,28 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    private var menuQuotaCycle: QuotaHistorySeries? {
+        let window = QuotaWindowSelection.preferredDefault(from: history.quotaWindows)
+        guard let window else { return nil }
+
+        let samples = history.quotaSamples.filter { $0.windowID == window.id }
+        guard let cycle = QuotaHistorySeries.makeCurrentCycle(
+            samples: samples,
+            window: window,
+            now: Date()
+        ), !cycle.samples.isEmpty else {
+            return nil
+        }
+        return cycle
+    }
+
+    private var menuQuotaRemaining: Int? {
+        menuQuotaCycle?.samples.last?.remainingPercent
+    }
+
     private func openHistoryWindow() {
         openWindow(id: CodexMeterWindowID.history)
         NSApplication.shared.activate(ignoringOtherApps: true)
-    }
-
-    private var menuTokenPoints: [TokenChartPoint] {
-        TokenChartData.filtered(
-            TokenChartData.points(from: history.tokenUsage ?? service.tokenUsage),
-            range: .month,
-            now: Date()
-        )
-    }
-
-    private var menuTokenTotal: Int64 {
-        menuTokenPoints.reduce(0) { partial, point in
-            let (sum, overflow) = partial.addingReportingOverflow(point.tokens)
-            return overflow ? Int64.max : sum
-        }
-    }
-
-    private func compactToken(_ value: Int64) -> String {
-        CompactTokenFormatter.string(value, locale: L10n.locale)
-    }
-
-    private var historySummary: String {
-        if let lifetime = service.tokenUsage?.summary.lifetimeTokens {
-            return L10n.format(
-                "history.summary.tokens_format",
-                CompactTokenFormatter.string(lifetime, locale: L10n.locale)
-            )
-        }
-        return L10n.string("history.summary.local")
     }
 
     private var footer: some View {

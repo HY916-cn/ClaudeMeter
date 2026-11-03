@@ -117,9 +117,21 @@ extension HistoryRetention {
     }
 }
 
-extension TokenActivityRange {
+extension QuotaHistoryRange {
     var localizedName: String {
-        L10n.string("history.range.\(rawValue)")
+        L10n.string("history.quota.range.\(rawValue)")
+    }
+}
+
+extension QuotaHistoryMode {
+    var localizedName: String {
+        historyRange?.localizedName ?? L10n.string("history.quota.mode.browse")
+    }
+}
+
+extension QuotaCalendarPeriod {
+    var localizedName: String {
+        L10n.string("history.quota.calendar.\(rawValue)")
     }
 }
 

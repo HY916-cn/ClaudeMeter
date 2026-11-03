@@ -20,10 +20,10 @@ final class PopoverContentConfigurationTests: XCTestCase {
 
         XCTAssertTrue(configuration.isSectionVisible(.quotaWindows))
         XCTAssertTrue(configuration.isSectionVisible(.resetCredits))
-        XCTAssertTrue(configuration.isSectionVisible(.tokenActivity))
+        XCTAssertTrue(configuration.isSectionVisible(.quotaHistory))
         XCTAssertEqual(
             configuration.sectionOrder,
-            [.quotaWindows, .resetCredits, .tokenActivity]
+            [.quotaWindows, .resetCredits, .quotaHistory]
         )
         XCTAssertTrue(configuration.isQuotaWindowVisible(fiveHour))
         XCTAssertTrue(configuration.isQuotaWindowVisible(weekly))
@@ -113,14 +113,13 @@ final class PopoverContentConfigurationTests: XCTestCase {
     func testMovingSectionChangesOnlyItsStoredOrder() {
         var configuration = PopoverContentConfiguration.defaultValue
 
-        configuration.moveSection(.tokenActivity, by: -1)
+        configuration.moveSection(.quotaHistory, by: -1)
 
         XCTAssertEqual(
             configuration.sectionOrder,
-            [.quotaWindows, .tokenActivity, .resetCredits]
+            [.quotaWindows, .quotaHistory, .resetCredits]
         )
         XCTAssertTrue(configuration.isSectionVisible(.resetCredits))
-        XCTAssertTrue(configuration.isSectionVisible(.tokenActivity))
     }
 
     func testDecodingOlderEmptyPreferencesUsesCurrentDefaults() throws {

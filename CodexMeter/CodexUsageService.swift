@@ -11,9 +11,6 @@ final class CodexUsageService: ObservableObject {
     @Published private(set) var isStale = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var lastUpdated: Date?
-    @Published private(set) var tokenUsage: TokenUsageSnapshot?
-    @Published private(set) var isTokenUsageUnavailable = true
-    @Published private(set) var tokenUsageErrorMessage: String?
     @Published private(set) var rateLimitResetCredits: CodexRateLimitResetCreditsSummary?
 
     private let settings: AppSettings
@@ -171,7 +168,6 @@ final class CodexUsageService: ObservableObject {
             windows = []
             lastUpdated = nil
             isStale = false
-            tokenUsage = nil
             lastHistorySnapshot = nil
             lastHistoryAccountKey = nil
             lastHistoryRecordAt = nil
